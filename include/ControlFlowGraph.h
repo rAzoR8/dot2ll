@@ -7,6 +7,7 @@ template <class TNodeType = DefaultBB>
 class ControlFlowGraph
 {
 public:
+    using NodeType = TNodeType;
     using Nodes = std::vector<TNodeType>;
 
     ControlFlowGraph(const size_t _uMaxNodes = 128u)

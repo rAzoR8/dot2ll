@@ -8,16 +8,20 @@ int main(int argc, char* argv[])
         return 1;
 
     DotGraph dotgraph = DotParser::ParseFromFile(argv[1]);
-    DefaultCFG cfg = Dot2CFG::Convert(dotgraph);
-    const std::string sFuncDef = CFG2LL::Generate(cfg);
 
-    const std::string sOutLL = dotgraph.GetName() + ".ll";
-    std::ofstream ll(argc > 2 ? argv[2] : sOutLL.c_str());
-
-    if (ll.is_open())
+    if (dotgraph.GetNodes().empty() == false)
     {
-        CFG2LL::WriteToStdStream(cfg, sFuncDef, ll);
-        ll.close();
+        DefaultCFG cfg = Dot2CFG::Convert(dotgraph);
+        const std::string sFuncDef = CFG2LL::Generate(cfg);
+
+        const std::string sOutLL = dotgraph.GetName() + ".ll";
+        std::ofstream ll(argc > 2 ? argv[2] : sOutLL.c_str());
+
+        if (ll.is_open())
+        {
+            CFG2LL::WriteToStdStream(cfg, sFuncDef, ll);
+            ll.close();
+        }
     }
 
     return 0;

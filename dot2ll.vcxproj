@@ -135,6 +135,7 @@
     <ClInclude Include="..\dotparse\include\DotParser.h" />
     <ClInclude Include="include\BasicBlock.h" />
     <ClInclude Include="include\CFG2LL.h" />
+    <ClInclude Include="include\CFGUtils.h" />
     <ClInclude Include="include\ControlFlowGraph.h" />
     <ClInclude Include="include\Dot2CFG.h" />
   </ItemGroup>

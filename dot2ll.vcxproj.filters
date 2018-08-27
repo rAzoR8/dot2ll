@@ -44,5 +44,8 @@
     <ClInclude Include="include\Dot2CFG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\CFGUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

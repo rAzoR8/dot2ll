@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Dot2CFG.h"
+#include "CFGUtils.h"
 #include <ostream>
 
 class CFG2LL
@@ -69,9 +70,9 @@ inline void CFG2LL::WriteToStdStream(const DefaultCFG& _Graph, const std::string
 {
     _Stream << _sFuncDef << '{' << std::endl;
 
-    for (const DefaultBB& BB : _Graph)
+    for (const DefaultBB* pBB : CFGUtils::GetSerializationOrder(_Graph))
     {
-        for (const std::string& sInstruction : BB.GetInstructions())
+        for (const std::string& sInstruction : pBB->GetInstructions())
         {
             _Stream << sInstruction << std::endl;
         }
