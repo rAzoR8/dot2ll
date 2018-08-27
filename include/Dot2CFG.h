@@ -9,22 +9,30 @@ public:
     Dot2CFG() {};
     ~Dot2CFG() {};
 
-    static DefaultCFG Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey = "style", const std::string& _sDivergenceAttribValue = "dotted");
+    template <
+        class TInstruction = std::string,
+        class TNodeAttrib = DefaultNodeAttributes,
+        class TEdgeAttrib = DefaultEdgeAttributes>
+    static TControlFlowGraph<TInstruction, TNodeAttrib, TEdgeAttrib> Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey = "style", const std::string& _sDivergenceAttribValue = "dotted");
 
 private:
 
 };
 
-inline DefaultCFG Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey, const std::string& _sDivergenceAttribValue)
+template<class TInstruction, class TNodeAttrib, class TEdgeAttrib>
+inline TControlFlowGraph<TInstruction, TNodeAttrib, TEdgeAttrib> Dot2CFG::Convert(const DotGraph& _Graph, const std::string & _sDivergenceAttribKey, const std::string & _sDivergenceAttribValue)
 {
-    DefaultCFG cfg;
+    using CFG = TControlFlowGraph<TInstruction, TNodeAttrib, TEdgeAttrib>;
+    using NodeType = typename CFG::NodeType;
 
-    const auto AddNode = [&cfg](const DotNode& node) ->DefaultBB*
+    CFG cfg;
+
+    const auto AddNode = [&cfg](const DotNode& node) -> DefaultBB*
     {
         const std::hash<std::string> hash;
 
-        DefaultBB* pNode = cfg.AddNode(hash(node.GetName()));
-        DefaultNodeAttributes& Attributes = pNode->GetAttributes();
+        NodeType* pNode = cfg.AddNode(hash(node.GetName()));
+        auto& Attributes = pNode->GetAttributes();
 
         Attributes.sName = node.GetName();
         Attributes.sComment = node.GetAttributes().GetValue("label");
@@ -35,7 +43,7 @@ inline DefaultCFG Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _s
 
     for (const DotNode& node : _Graph)
     {
-        DefaultBB* pNode = AddNode(node);
+        NodeType* pNode = AddNode(node);
 
         for (const DotNode::Successor& succ : node.GetSuccessors())
         {
@@ -45,7 +53,7 @@ inline DefaultCFG Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _s
     }
 
     // multiple sources and sinks might exist with this definition
-    for (DefaultBB& BB : cfg)
+    for (NodeType& BB : cfg)
     {
         BB.GetAttributes().bSource = BB.GetPredecessors().empty();
     }

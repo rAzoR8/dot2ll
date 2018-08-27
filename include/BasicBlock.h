@@ -6,20 +6,13 @@
 
 struct DefaultNodeAttributes
 {
-    std::string sName;
-    std::string sComment; // Label
-    bool bSource; // Entry
-    bool bSink; // Exit
-    bool bDivergent; // non uniform
 };
 
 struct DefaultEdgeAttributes
 {
 };
 
-using DefaultInstructions = std::deque<std::string>;
-
-template <class TInstructions = DefaultInstructions, class TNodeAttributes = DefaultNodeAttributes, class TEdgeAttributes = DefaultEdgeAttributes>
+template <class TInstruction = std::string, class TNodeAttributes = DefaultNodeAttributes, class TEdgeAttributes = DefaultEdgeAttributes>
 class BasicBlock
 {
 public:
@@ -32,17 +25,29 @@ public:
         TEdgeAttributes Attributes;
     };
 
+    struct NodeAttributes
+    {
+        std::string sName;
+        std::string sComment; // Label
+        bool bSource; // Entry
+        bool bSink; // Exit
+        bool bDivergent; // non uniform
+
+        TNodeAttributes CustomAttributes;
+    };
+
     using Successors = std::vector<Successor>;
     using Predecessors = std::vector<BasicBlock*>;
+    using Instructions = std::deque<TInstruction>;
 
     BasicBlock() {}
-    BasicBlock(const TInstructions& _Instructions, const Successors& _Successors) :
+    BasicBlock(const Instructions& _Instructions, const Successors& _Successors) :
         m_Instructions(_Instructions), m_Successors(_Successors) {}
 
     ~BasicBlock() {};
 
-    const TInstructions& GetInstructions() const { return m_Instructions; }
-    TInstructions& GetInstructions() { return m_Instructions; }
+    const Instructions& GetInstructions() const { return m_Instructions; }
+    Instructions& GetInstructions() { return m_Instructions; }
 
     const Successors& GetSuccesors() const { return m_Successors; }
     Successors& GetSuccesors() { return m_Successors; }
@@ -50,8 +55,8 @@ public:
     const Predecessors& GetPredecessors() const { return m_Predecessors; }
     Predecessors& GetPredecessors() { return m_Predecessors; }
 
-    const TNodeAttributes& GetAttributes() const { return m_Attributes; }
-    TNodeAttributes& GetAttributes() { return m_Attributes; }
+    const NodeAttributes& GetAttributes() const { return m_Attributes; }
+    NodeAttributes& GetAttributes() { return m_Attributes; }
 
     BasicBlock* AddSuccessor(BasicBlock* _pSuccessor, const TEdgeAttributes& _Attributes = {})
     {
@@ -61,11 +66,11 @@ public:
     }
 
 private:
-    TInstructions m_Instructions;
+    Instructions m_Instructions;
     Successors m_Successors;
     Predecessors m_Predecessors;
 
-    TNodeAttributes m_Attributes;
+    NodeAttributes m_Attributes;
 };
 
 using DefaultBB = BasicBlock<>;

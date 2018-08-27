@@ -47,5 +47,8 @@
     <ClInclude Include="include\CFGUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="LowerReconvCFG.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

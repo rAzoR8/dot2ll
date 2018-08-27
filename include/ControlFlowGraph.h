@@ -49,3 +49,6 @@ private:
 };
 
 using DefaultCFG = ControlFlowGraph<>;
+
+template <class TInstruction = std::string, class TNodeAttributes = DefaultNodeAttributes, class TEdgeAttributes = DefaultEdgeAttributes>
+using TControlFlowGraph = typename ControlFlowGraph<BasicBlock<TInstruction, TNodeAttributes, DefaultEdgeAttributes>>;
