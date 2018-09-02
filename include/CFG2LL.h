@@ -26,35 +26,34 @@ inline std::string CFG2LL::Generate(DefaultCFG& _Graph)
 
     for (DefaultBB& BB : _Graph)
     {
-        const auto& Attributes = BB.GetAttributes();
         auto& Instrutions = BB.GetInstructions();
         const auto& Successors = BB.GetSuccesors();
 
-        Instrutions.push_front(Attributes.sName + ':');
+        Instrutions.push_front(BB.sName + ':');
         switch (Successors.size())
         {
         case 0u:
             Instrutions.push_back("\tret void");
             break;
         case 1u:
-            Instrutions.push_back("\tbr label %" + Successors[0].pNode->GetAttributes().sName);
+            Instrutions.push_back("\tbr label %" + Successors[0]->sName);
             break;
         default: // 2+
         {
-            Instrutions.push_back("\t%cc_" + Attributes.sName + " = icmp eq i32 %in_" + Attributes.sName + ", 0");
-            Instrutions.push_back("\tbr i1 %cc_" + Attributes.sName + ", label " + Successors[0].pNode->GetAttributes().sName + ", label " + Successors[1].pNode->GetAttributes().sName);
+            Instrutions.push_back("\t%cc_" + BB.sName + " = icmp eq i32 %in_" + BB.sName + ", 0");
+            Instrutions.push_back("\tbr i1 %cc_" + BB.sName + ", label " + Successors[0]->sName + ", label " + Successors[1]->sName);
 
             // add to func def
             if ((sFunctionDef.size() > uFuncDefLen))
                 sFunctionDef += ", ";
 
-            if (Attributes.bDivergent)
+            if (BB.bDivergent)
             {
-                sFunctionDef += "i32 inreg %in_" + Attributes.sName;
+                sFunctionDef += "i32 inreg %in_" + BB.sName;
             }
             else
             {
-                sFunctionDef += "i32 in %in_" + Attributes.sName;
+                sFunctionDef += "i32 in %in_" + BB.sName;
             }
         }
         break;

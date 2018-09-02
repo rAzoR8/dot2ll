@@ -4,39 +4,11 @@
 #include <deque>
 #include <string>
 
-struct DefaultNodeAttributes
-{
-};
-
-struct DefaultEdgeAttributes
-{
-};
-
-template <class TInstruction = std::string, class TNodeAttributes = DefaultNodeAttributes, class TEdgeAttributes = DefaultEdgeAttributes>
+template <class TInstruction = std::string>
 class BasicBlock
 {
 public:
-    struct Successor
-    {
-        Successor(BasicBlock* _pNode = nullptr, const TEdgeAttributes& _Attributes = {}) :
-            pNode(_pNode), Attributes(_Attributes) {}
-
-        BasicBlock* pNode;
-        TEdgeAttributes Attributes;
-    };
-
-    struct NodeAttributes
-    {
-        std::string sName;
-        std::string sComment; // Label
-        bool bSource; // Entry
-        bool bSink; // Exit
-        bool bDivergent; // non uniform
-
-        TNodeAttributes CustomAttributes;
-    };
-
-    using Successors = std::vector<Successor>;
+    using Successors = std::vector<BasicBlock*>;
     using Predecessors = std::vector<BasicBlock*>;
     using Instructions = std::deque<TInstruction>;
 
@@ -55,22 +27,23 @@ public:
     const Predecessors& GetPredecessors() const { return m_Predecessors; }
     Predecessors& GetPredecessors() { return m_Predecessors; }
 
-    const NodeAttributes& GetAttributes() const { return m_Attributes; }
-    NodeAttributes& GetAttributes() { return m_Attributes; }
-
-    BasicBlock* AddSuccessor(BasicBlock* _pSuccessor, const TEdgeAttributes& _Attributes = {})
+    BasicBlock* AddSuccessor(BasicBlock* _pSuccessor)
     {
-        m_Successors.push_back(Successor(_pSuccessor, _Attributes));
+        m_Successors.push_back(_pSuccessor);
         _pSuccessor->m_Predecessors.push_back(this);
         return this;
     }
+
+    std::string sName;
+    std::string sComment; // Label
+    bool bSource; // Entry
+    bool bSink; // Exit
+    bool bDivergent; // non uniform
 
 private:
     Instructions m_Instructions;
     Successors m_Successors;
     Predecessors m_Predecessors;
-
-    NodeAttributes m_Attributes;
 };
 
 using DefaultBB = BasicBlock<>;
