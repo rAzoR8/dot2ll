@@ -1,14 +1,13 @@
 #pragma once
 
-//#include "ControlFlowGraph.h"
+#include "ControlFlowGraph.h"
 #include <vector>
 
 struct CFGUtils
 {
-    template <class TCFG, class NodeType = typename TCFG::NodeType>
-    static NodeType* GetSource(TCFG& _Graph)
+    static BasicBlock* GetSource(ControlFlowGraph& _Graph)
     {
-        for (NodeType& node : _Graph)
+        for (BasicBlock& node : _Graph)
         {
             if (node.GetPredecessors().empty())
             {
@@ -19,10 +18,9 @@ struct CFGUtils
         return nullptr;
     }
 
-    template <class TCFG, class NodeType = typename TCFG::NodeType>
-    static const NodeType* GetSource(const TCFG& _Graph)
+    static const BasicBlock* GetSource(const ControlFlowGraph& _Graph)
     {
-        for (const NodeType& node : _Graph)
+        for (const BasicBlock& node : _Graph)
         {
             if (node.GetPredecessors().empty())
             {

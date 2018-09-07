@@ -1,7 +1,8 @@
 #pragma once
 
 #include "DotGraph.h"
-#include "ControlFlowGraph.h"
+#include "Function.h"
+#include "InstructionSetLLVMAMD.h"
 
 class Dot2CFG
 {
@@ -9,47 +10,63 @@ public:
     Dot2CFG() {};
     ~Dot2CFG() {};
 
-    template <class TInstruction = std::string>
-    static TControlFlowGraph<TInstruction> Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey = "style", const std::string& _sDivergenceAttribValue = "dotted");
+    static Function Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey = "style", const std::string& _sDivergenceAttribValue = "dotted");
 };
 
-template<class TInstruction>
-inline TControlFlowGraph<TInstruction> Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey, const std::string& _sDivergenceAttribValue)
+inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey, const std::string& _sDivergenceAttribValue)
 {
-    using CFG = TControlFlowGraph<TInstruction>;
-    using NodeType = typename CFG::NodeType;
+    Function func(_Graph.GetName());
 
-    CFG cfg;
+    ControlFlowGraph& cfg = func.GetCFG();
 
-    const auto AddNode = [&cfg](const DotNode& node) -> DefaultBB*
+    const auto AddNode = [&cfg](const DotNode& node) -> BasicBlock*
     {
-        const std::hash<std::string> hash;
-
-        NodeType* pNode = cfg.AddNode(hash(node.GetName()));
-
-        pNode->sName = node.GetName();
-        pNode->sComment = node.GetAttributes().GetValue("label");
-        pNode->bSink = node.GetSuccessors().empty();
-
-        return pNode;
+        return cfg.AddNode(hlx::Hash(node.GetName()), node.GetName());
     };
 
     for (const DotNode& node : _Graph)
     {
-        NodeType* pNode = AddNode(node);
+        BasicBlock* pNode = AddNode(node);
 
-        for (const DotNode::Successor& succ : node.GetSuccessors())
+        BasicBlock* pTrueSucc = nullptr;
+        BasicBlock* pFalseSucc = nullptr;
+
+        if (node.GetSuccessors().size() > 0u)
         {
-            pNode->bDivergent = succ.Attributes.HasValue(_sDivergenceAttribKey, _sDivergenceAttribValue);
-            pNode->AddSuccessor(AddNode(*succ.pNode));
+            pNode->SetDivergent(node.GetSuccessors().front().Attributes.HasValue(_sDivergenceAttribKey, _sDivergenceAttribValue));
+            pTrueSucc = AddNode(*node.GetSuccessors().front().pNode);
         }
+        if (node.GetSuccessors().size() > 1u)
+        {
+            pFalseSucc = AddNode(*node.GetSuccessors()[1].pNode);
+        }
+        else
+        {
+            pNode->AddInstruction()->Return();
+        }
+
+        if (pTrueSucc != nullptr && pFalseSucc != nullptr)
+        {
+            Instruction* pType = func.Type(TypeInfo(kType_Int));
+            if (pNode->IsDivergent())
+            {
+                pType->Decorate({ kDecoration_Divergent });
+            }
+
+            Instruction* pParam = func.AddParameter(pType);
+            pParam->SetAlias("in_" + pNode->GetName());
+
+            Instruction* pConstNull = pNode->AddInstruction()->Constant(pType, { 0u });
+            Instruction* pCondition = pNode->AddInstruction()->Equal(pParam, pConstNull);
+
+            pNode->AddInstruction()->BranchCond(pCondition, pTrueSucc, pFalseSucc)->SetAlias("cc_" + pNode->GetName());
+        }
+        else if (pTrueSucc != nullptr)
+        {
+            pNode->AddInstruction()->Branch(pTrueSucc);
+        }      
     }
 
-    // multiple sources and sinks might exist with this definition
-    for (NodeType& BB : cfg)
-    {
-        BB.bSource = BB.GetPredecessors().empty();
-    }
-
-    return cfg;
+    func.Finalize();
+    return func;
 }

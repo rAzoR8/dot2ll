@@ -128,6 +128,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\BasicBlock.cpp" />
+    <ClCompile Include="src\ControlFlowGraph.cpp" />
+    <ClCompile Include="src\Function.cpp" />
+    <ClCompile Include="src\Instruction.cpp" />
+    <ClCompile Include="src\InstructionSetLLVMAMD.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dotparse\include\DotGraph.h" />
@@ -138,7 +143,13 @@
     <ClInclude Include="include\CFGUtils.h" />
     <ClInclude Include="include\ControlFlowGraph.h" />
     <ClInclude Include="include\Dot2CFG.h" />
-    <ClInclude Include="LowerReconvCFG.h" />
+    <ClInclude Include="include\Function.h" />
+    <ClInclude Include="include\Instruction.h" />
+    <ClInclude Include="include\InstructionDefines.h" />
+    <ClInclude Include="include\InstructionSet.h" />
+    <ClInclude Include="include\InstructionSetLLVMAMD.h" />
+    <ClInclude Include="include\LowerReconvCFG.h" />
+    <ClInclude Include="include\OpenTree.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

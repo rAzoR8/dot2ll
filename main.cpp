@@ -1,6 +1,6 @@
 #include "DotParser.h"
 #include "Dot2CFG.h"
-#include "CFG2LL.h"
+#include "InstructionSetLLVMAMD.h"
 
 int main(int argc, char* argv[])
 {
@@ -11,15 +11,16 @@ int main(int argc, char* argv[])
 
     if (dotgraph.GetNodes().empty() == false)
     {
-        DefaultCFG cfg = Dot2CFG::Convert(dotgraph);
-        const std::string sFuncDef = CFG2LL::Generate(cfg);
-
         const std::string sOutLL = dotgraph.GetName() + ".ll";
         std::ofstream ll(argc > 2 ? argv[2] : sOutLL.c_str());
 
         if (ll.is_open())
         {
-            CFG2LL::WriteToStdStream(cfg, sFuncDef, ll);
+            Function func = Dot2CFG::Convert(dotgraph);
+
+            InstructionSetLLVMAMD isa;
+            isa.SerializeListing(func, ll);
+
             ll.close();
         }
     }

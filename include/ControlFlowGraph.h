@@ -3,12 +3,11 @@
 #include "BasicBlock.h"
 #include <unordered_map>
 
-template <class TNodeType = DefaultBB>
 class ControlFlowGraph
 {
+    friend class BasicBlock;
 public:
-    using NodeType = TNodeType;
-    using Nodes = std::vector<TNodeType>;
+    using Nodes = std::vector<BasicBlock>;
 
     ControlFlowGraph(const size_t _uMaxNodes = 128u)
     {
@@ -16,22 +15,14 @@ public:
     };
 
     ControlFlowGraph(ControlFlowGraph&& _Other) :
-        m_Nodes(std::move(_Other.m_Nodes)), m_NodeMap(std::move(_Other.m_NodeMap)) {}
+        m_Nodes(std::move(_Other.m_Nodes)),
+        m_Instructions(std::move(_Other.m_Instructions)),
+        m_NodeMap(std::move(_Other.m_NodeMap)) {}
 
     ~ControlFlowGraph() {};
 
-    template <class ...Args>
-    TNodeType* AddNode(const size_t uIdentifier, Args&& ..._Args)
-    {
-        if (auto it = m_NodeMap.find(uIdentifier); it != m_NodeMap.end())
-        {
-            return it->second;
-        }
-
-        TNodeType* pNode = &m_Nodes.emplace_back(std::forward<Args>(_Args)...);
-        m_NodeMap.insert({ uIdentifier, pNode });
-        return pNode;
-    }
+    BasicBlock* AddNode(const uint64_t uIdentifier, const std::string& _sName = {});
+    BasicBlock* GetNode(const uint64_t uIdentifier) const;
 
     const Nodes& GetNodes() const { return m_Nodes; }
     Nodes& GetNodes() { return m_Nodes; }
@@ -42,13 +33,15 @@ public:
     typename Nodes::const_iterator begin() const noexcept { return m_Nodes.begin(); }
     typename Nodes::const_iterator end() const noexcept { return m_Nodes.end(); }
 
+    TypeInfo ResolveType(const uint64_t _uTypeId) const;
+    TypeInfo ResolveType(const Instruction* _pType) const;
+
+    Instruction* GetInstruction(const uint64_t _uId);
+    Instruction* GetInstruction(const uint64_t _uId) const;
+
 private:
     Nodes m_Nodes;
 
-    std::unordered_map<size_t, TNodeType*> m_NodeMap;
+    std::vector<Instruction*> m_Instructions;
+    std::unordered_map<uint64_t, BasicBlock*> m_NodeMap;
 };
-
-using DefaultCFG = ControlFlowGraph<>;
-
-template <class TInstruction = std::string>
-using TControlFlowGraph = typename ControlFlowGraph<BasicBlock<TInstruction>>;
