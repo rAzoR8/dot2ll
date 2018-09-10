@@ -130,6 +130,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\BasicBlock.cpp" />
     <ClCompile Include="src\ControlFlowGraph.cpp" />
+    <ClCompile Include="src\DominatorTree.cpp" />
     <ClCompile Include="src\Function.cpp" />
     <ClCompile Include="src\Instruction.cpp" />
     <ClCompile Include="src\InstructionSetLLVMAMD.cpp" />
@@ -142,6 +143,7 @@
     <ClInclude Include="include\CFG2LL.h" />
     <ClInclude Include="include\CFGUtils.h" />
     <ClInclude Include="include\ControlFlowGraph.h" />
+    <ClInclude Include="include\DominatorTree.h" />
     <ClInclude Include="include\Dot2CFG.h" />
     <ClInclude Include="include\Function.h" />
     <ClInclude Include="include\Instruction.h" />

@@ -36,6 +36,9 @@
     <ClCompile Include="src\ControlFlowGraph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\DominatorTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dotparse\include\DotGraph.h">
@@ -81,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\InstructionDefines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\DominatorTree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
