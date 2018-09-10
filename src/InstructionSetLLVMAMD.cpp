@@ -56,10 +56,48 @@ std::string InstructionSetLLVMAMD::ResolveTypeName(const TypeInfo& _Type)
     return sType;
 }
 
+std::string InstructionSetLLVMAMD::ResolveConstant(const Function& _Function, const Instruction& _Instruction)
+{
+    const TypeInfo Type = _Function.GetCFG().ResolveType(_Function.GetCFG().GetInstruction(_Instruction.GetResultTypeId()));
+
+    const auto& Operands = _Instruction.GetOperands();
+
+    switch (Type.kType)
+    {
+    //case kType_Void:
+    case kType_Bool:
+        return Operands[0].uId == false ? "false" : "true";
+    case kType_Int:
+    case kType_UInt:
+        return std::to_string(Operands[0].uId);
+    case kType_Float:
+        return (std::to_string(*reinterpret_cast<const double*>(&Operands[0].uId)));
+    case kType_Pointer:
+    case kType_Array:
+    case kType_Struct:
+    default:
+        break;
+    }
+
+    return std::string();
+}
+
 bool InstructionSetLLVMAMD::SerializeInstruction(const Function& _Function, const Instruction& _Instruction, std::ostream& _OutStream)
 {
     const std::vector<Operand>& Operands = _Instruction.GetOperands();
     const ControlFlowGraph& cfg = _Function.GetCFG();
+
+    const auto AliasOrConst = [&](const Instruction* pInstr) -> std::string
+    {
+        if (pInstr->GetInstruction() == kInstruction_Constant)
+        {
+            return ResolveConstant(_Function, *pInstr);
+        }
+        else
+        {
+            return '%' + pInstr->GetAlias();
+        }
+    };
 
     switch (_Instruction.GetInstruction())
     {
@@ -78,13 +116,13 @@ bool InstructionSetLLVMAMD::SerializeInstruction(const Function& _Function, cons
         _OutStream << "\tbr label %" << cfg.GetNode(Operands[0].uId)->GetName() << std::endl;
         break;
     case kInstruction_BranchCond:
-        _OutStream << "\tbr " << cfg.GetInstruction(Operands[0].uId)->GetAlias();
+        _OutStream << "\tbr %" << cfg.GetInstruction(Operands[0].uId)->GetAlias();
         _OutStream << ", label %" << cfg.GetNode(Operands[1].uId)->GetName();
         _OutStream << ", label %" << cfg.GetNode(Operands[2].uId)->GetName() << std::endl;
         break;
     case kInstruction_Equal:
         _OutStream << "\t%" << _Instruction.GetAlias() << " = icmp eq " << ResolveTypeName(_Function, cfg.GetInstruction(Operands[0].uId)->GetResultTypeId());
-        _OutStream << '%' << cfg.GetInstruction(Operands[1].uId)->GetAlias() << ", " << std::endl;
+        _OutStream << ' ' << AliasOrConst(cfg.GetInstruction(Operands[0].uId)) << ", " << AliasOrConst(cfg.GetInstruction(Operands[1].uId)) << std::endl;
         break;
     default:
         break;
@@ -133,6 +171,10 @@ bool InstructionSetLLVMAMD::SerializeListing(const Function& _Function, std::ost
         if (BB.IsSource() == false) // entry label
         {
             _OutStream << BB.GetName() << ':' << std::endl;
+        }
+        else
+        {
+            continue;
         }
 
         for (const Instruction& Instr : BB)

@@ -31,6 +31,10 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sDi
         BasicBlock* pTrueSucc = nullptr;
         BasicBlock* pFalseSucc = nullptr;
 
+        if (node.GetSuccessors().empty())
+        {
+            pNode->AddInstruction()->Return();
+        }
         if (node.GetSuccessors().size() > 0u)
         {
             pNode->SetDivergent(node.GetSuccessors().front().Attributes.HasValue(_sDivergenceAttribKey, _sDivergenceAttribValue));
@@ -39,10 +43,6 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sDi
         if (node.GetSuccessors().size() > 1u)
         {
             pFalseSucc = AddNode(*node.GetSuccessors()[1].pNode);
-        }
-        else
-        {
-            pNode->AddInstruction()->Return();
         }
 
         if (pTrueSucc != nullptr && pFalseSucc != nullptr)
@@ -58,8 +58,9 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sDi
 
             Instruction* pConstNull = pNode->AddInstruction()->Constant(pType, { 0u });
             Instruction* pCondition = pNode->AddInstruction()->Equal(pParam, pConstNull);
+            pCondition->SetAlias("cc_" + pNode->GetName());
 
-            pNode->AddInstruction()->BranchCond(pCondition, pTrueSucc, pFalseSucc)->SetAlias("cc_" + pNode->GetName());
+            pNode->AddInstruction()->BranchCond(pCondition, pTrueSucc, pFalseSucc);
         }
         else if (pTrueSucc != nullptr)
         {
