@@ -37,6 +37,7 @@ private:
     const std::string m_sName;
     ControlFlowGraph m_CFG;
     BasicBlock* const m_pEntryBlock;
+    BasicBlock* m_pExitBlock = nullptr;
 
     std::vector<Instruction*> m_Parameters;
     Instruction* m_pReturnType = nullptr;

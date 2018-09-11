@@ -10,10 +10,10 @@ public:
     Dot2CFG() {};
     ~Dot2CFG() {};
 
-    static Function Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey = "style", const std::string& _sDivergenceAttribValue = "dotted");
+    static Function Convert(const DotGraph& _Graph, const std::string& _sUniformAttribKey = "style", const std::string& _sUniformAttribValue = "dotted");
 };
 
-inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sDivergenceAttribKey, const std::string& _sDivergenceAttribValue)
+inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sUniformAttribKey, const std::string& _sUniformAttribValue)
 {
     Function func(_Graph.GetName());
 
@@ -31,13 +31,9 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sDi
         BasicBlock* pTrueSucc = nullptr;
         BasicBlock* pFalseSucc = nullptr;
 
-        if (node.GetSuccessors().empty())
-        {
-            pNode->AddInstruction()->Return();
-        }
         if (node.GetSuccessors().size() > 0u)
         {
-            pNode->SetDivergent(node.GetSuccessors().front().Attributes.HasValue(_sDivergenceAttribKey, _sDivergenceAttribValue));
+            pNode->SetDivergent(node.GetSuccessors().front().Attributes.HasValue(_sUniformAttribKey, _sUniformAttribValue) == false);
             pTrueSucc = AddNode(*node.GetSuccessors().front().pNode);
         }
         if (node.GetSuccessors().size() > 1u)

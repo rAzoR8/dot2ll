@@ -46,6 +46,8 @@ private:
     Instruction* FunctionParameter(const Instruction* _pType, const uint64_t _uIndex);
     Instruction* Type(const EType _kType, const uint32_t _uElementBits, const uint32_t _uElementCount, const std::vector<uint64_t>& _SubTypes = {}, const std::vector<Decoration>& _Decorations = {});
 
+    //Instruction* Reset();
+
 private:
     const uint64_t uIdentifier; // result identifier
     BasicBlock* const pParent;

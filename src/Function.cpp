@@ -62,30 +62,49 @@ Instruction* Function::AddParameter(const Instruction* _pType, const uint64_t _u
     return pParam;
 }
 
+// function has no effect if it has already been finalized
 void Function::Finalize()
 {
+    if (m_pExitBlock == nullptr)
+    {
+        m_pExitBlock = m_CFG.AddNode(hlx::Hash(m_sName + "_EXITPOINT"), m_sName + "_EXITPOINT");
+    }
+
     // find the source and from the entry block
     BasicBlock* pSource = nullptr;
 
-    for (auto it = m_CFG.begin() + 1, end = m_CFG.end(); it != end; ++it)
+    for (auto it = m_CFG.begin() + 1, end = m_CFG.end()-1; it != end; ++it)
     {
         if (it->IsSource() && pSource == nullptr)
         {
             pSource = &(*it);
         }
 
-        if (m_pReturnType == nullptr && it->IsSink() && it->GetTerminator() != nullptr)
+        // reroute to unique sink
+        if (it->m_bSink)
         {
-            if (it->GetTerminator()->uResultTypeId != InvalidId)
+            if (it->m_pTerminator != nullptr && it->m_pTerminator->kInstruction == kInstruction_Return)
             {
-                m_pReturnType = m_Types[it->GetTerminator()->uResultTypeId];
+                if (m_pReturnType == nullptr)
+                {
+                    m_pReturnType = m_Types[it->m_pTerminator->uResultTypeId];
+                }
+
+                it->m_pTerminator = nullptr; // disable check
             }
-            else
-            {
-                m_pReturnType = Type(TypeInfo(kType_Void));
-            }
+
+            it->m_pTerminator = it->AddInstruction()->Branch(m_pExitBlock);
         }
     }
 
-    m_pEntryBlock->AddInstruction()->Branch(pSource);
+    if (m_pReturnType == nullptr)
+    {
+       m_pReturnType = Type(TypeInfo(kType_Void));
+    }
+
+    // connect virtual entry block with user code blocks
+    if (m_pEntryBlock->GetTerminator() != nullptr && m_pEntryBlock->GetTerminator()->GetInstruction() != kInstruction_Branch)
+    {
+        m_pEntryBlock->AddInstruction()->Branch(pSource);
+    }
 }

@@ -103,9 +103,9 @@ bool InstructionSetLLVMAMD::SerializeInstruction(const Function& _Function, cons
     {
     case kInstruction_Return:
         _OutStream << "\tret ";
-        if (Operands.empty() == false)
+        if (Operands.size() == 1u)
         {
-            _OutStream << '%' << cfg.GetInstruction(Operands[0].uId)->GetAlias() << std::endl;
+            _OutStream << '%' << cfg.GetInstruction(Operands[1].uId)->GetAlias() << std::endl;
         }
         else
         {

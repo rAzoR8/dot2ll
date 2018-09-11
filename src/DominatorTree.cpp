@@ -1,7 +1,7 @@
 #include "DominatorTree.h"
+#include "CFGUtils.h"
 
-DominatorTree::DominatorTree(const BasicBlock* _pRoot, const bool _bPostDom) :
-    m_Root(nullptr, _pRoot)
+DominatorTree::DominatorTree(const BasicBlock* _pRoot, const bool _bPostDom)
 {
     std::unordered_set<const BasicBlock*> Set;
     std::vector<const BasicBlock*> BBs;
@@ -17,7 +17,7 @@ DominatorTree::DominatorTree(const BasicBlock* _pRoot, const bool _bPostDom) :
             const BasicBlock* pBlock = *it2;
             if (CFGUtils::IsReachable(pBlock, _pRoot, Set, !_bPostDom, pDom) == false)
             {
-
+                m_DominatorMap.insert({ pDom, pBlock });
             }
 
             Set.clear();
@@ -30,17 +30,12 @@ bool DominatorTree::Dominates(const BasicBlock* _pDominator, const BasicBlock* _
     if (_pDominator == _pBlock)
         return true;
 
-    auto it = m_NodeMap.find(_pBlock);
-    if (it != m_NodeMap.end())
-    {
-        const DominatorTreeNode* pNode = it->second;
-        do
-        {
-            if (pNode->GetBasicBlock() == _pDominator)
-                return true;
+    auto range = m_DominatorMap.equal_range(_pDominator);
 
-            pNode = pNode->GetParent();
-        } while (pNode != nullptr);
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        if (it->second == _pBlock)
+            return true;
     }
 
     return false;

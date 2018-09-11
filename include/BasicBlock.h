@@ -8,6 +8,7 @@ class BasicBlock
 {
     friend class Instruction;
     friend class ControlFlowGraph;
+    friend class Function;
 
     BasicBlock(const uint64_t _uIndentifier, ControlFlowGraph* _pParent, const std::string& _sName) :
         m_uIdentifier(_uIndentifier), m_pParent(_pParent), m_sName(_sName)

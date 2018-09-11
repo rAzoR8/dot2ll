@@ -12,6 +12,9 @@ Instruction* Instruction::Return(const Instruction* _pResult)
 {
     CHECK_INSTR;
 
+    if (_pResult == nullptr)
+        return nullptr;
+
     kInstruction = kInstruction_Return;
 
     if (_pResult != nullptr)
@@ -157,6 +160,16 @@ Instruction* Instruction::Type(const EType _kType, const uint32_t _uElementBits,
 
     return this;
 }
+
+//Instruction* Instruction::Reset()
+//{
+//    kInstruction = kInstruction_Undefined;
+//    uResultTypeId = InvalidId;
+//    Operands.clear();
+//    Decorations.clear();
+//
+//    return this;
+//}
 
 Instruction* Instruction::Equal(const Instruction* _pLeft, const Instruction* _pRight)
 {
