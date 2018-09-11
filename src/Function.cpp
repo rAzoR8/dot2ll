@@ -93,9 +93,17 @@ void Function::Finalize()
                 it->m_pTerminator = nullptr; // disable check
             }
 
-            it->m_pTerminator = it->AddInstruction()->Branch(m_pExitBlock);
+            it->AddInstruction()->Branch(m_pExitBlock);
         }
     }
+
+    // workaround for now
+    if (m_pExitBlock->GetInstructions().empty())
+    {
+        m_pExitBlock->AddInstruction()->Return();
+    }
+
+    // todo: generate Phi nodes
 
     if (m_pReturnType == nullptr)
     {

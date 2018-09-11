@@ -148,11 +148,11 @@ bool InstructionSetLLVMAMD::SerializeListing(const Function& _Function, std::ost
             _OutStream << ResolveTypeName(_Function.GetCFG().ResolveType(pParam->GetResultTypeId()));
             if (pParam->Is(kDecoration_Divergent))
             {
-                _OutStream << " inreg %";
+                _OutStream << " in %";
             }
             else
             {
-                _OutStream << " in %";
+                _OutStream << " inreg %";
             }
 
             _OutStream << pParam->GetAlias();

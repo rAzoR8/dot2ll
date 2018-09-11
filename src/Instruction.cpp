@@ -12,9 +12,6 @@ Instruction* Instruction::Return(const Instruction* _pResult)
 {
     CHECK_INSTR;
 
-    if (_pResult == nullptr)
-        return nullptr;
-
     kInstruction = kInstruction_Return;
 
     if (_pResult != nullptr)

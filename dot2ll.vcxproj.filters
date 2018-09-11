@@ -53,9 +53,6 @@
     <ClInclude Include="include\BasicBlock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\CFG2LL.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\ControlFlowGraph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
