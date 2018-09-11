@@ -85,6 +85,9 @@ struct CFGUtils
 
     static void DepthFirst(const BasicBlock* _pRoot, std::vector<const BasicBlock*>& _OutVec, std::unordered_set<const BasicBlock*>& _Set, const bool _bForward = true)
     {
+        if (_pRoot == nullptr)
+            return;
+
         _OutVec.push_back(_pRoot);
 
         const auto& Successors = _bForward ? _pRoot->GetSuccesors() : _pRoot->GetPredecessors();

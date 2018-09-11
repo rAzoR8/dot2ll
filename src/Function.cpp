@@ -116,3 +116,13 @@ void Function::Finalize()
         m_pEntryBlock->AddInstruction()->Branch(pSource);
     }
 }
+
+DominatorTree Function::GetDominatorTree() const
+{
+    return DominatorTree(m_pEntryBlock, false);
+}
+
+DominatorTree Function::GetPostDominatorTree() const
+{
+    return DominatorTree(m_pExitBlock, true);
+}

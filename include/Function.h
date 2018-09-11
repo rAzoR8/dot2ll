@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ControlFlowGraph.h"
+#include "DominatorTree.h"
 
 class Function
 {
@@ -30,6 +31,10 @@ public:
     const Instruction* GetReturnType() const { return m_pReturnType; };
 
     void Finalize();
+
+    // only works if finalize has been called before!
+    DominatorTree GetDominatorTree() const;
+    DominatorTree GetPostDominatorTree() const;
 
     const std::string& GetName() const { return m_sName; }
 
