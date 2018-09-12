@@ -134,6 +134,7 @@
     <ClCompile Include="src\Function.cpp" />
     <ClCompile Include="src\Instruction.cpp" />
     <ClCompile Include="src\InstructionSetLLVMAMD.cpp" />
+    <ClCompile Include="src\NodeOrdering.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dotparse\include\DotGraph.h" />
@@ -150,6 +151,7 @@
     <ClInclude Include="include\InstructionSet.h" />
     <ClInclude Include="include\InstructionSetLLVMAMD.h" />
     <ClInclude Include="include\LowerReconvCFG.h" />
+    <ClInclude Include="include\NodeOrdering.h" />
     <ClInclude Include="include\OpenTree.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

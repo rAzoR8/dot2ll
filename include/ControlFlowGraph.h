@@ -21,6 +21,8 @@ public:
 
     ~ControlFlowGraph() {};
 
+    // use name hash as identifier
+    BasicBlock* AddNode(const std::string& _sName);
     BasicBlock* AddNode(const uint64_t uIdentifier, const std::string& _sName = {});
     BasicBlock* GetNode(const uint64_t uIdentifier) const;
 

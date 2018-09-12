@@ -2,7 +2,7 @@
 
 Function::Function(const std::string& _sName) :
     m_sName(_sName),
-    m_pEntryBlock(m_CFG.AddNode(hlx::Hash(m_sName + "_ENTRYPOINT"), m_sName + "_ENTRYPOINT"))
+    m_pEntryBlock(m_CFG.AddNode(m_sName + "_ENTRYPOINT"))
 {
 }
 
@@ -67,7 +67,7 @@ void Function::Finalize()
 {
     if (m_pExitBlock == nullptr)
     {
-        m_pExitBlock = m_CFG.AddNode(hlx::Hash(m_sName + "_EXITPOINT"), m_sName + "_EXITPOINT");
+        m_pExitBlock = m_CFG.AddNode(m_sName + "_EXITPOINT");
     }
 
     // find the source and from the entry block

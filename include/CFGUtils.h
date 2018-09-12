@@ -83,7 +83,8 @@ struct CFGUtils
         return false;
     }
 
-    static void DepthFirst(const BasicBlock* _pRoot, std::vector<const BasicBlock*>& _OutVec, std::unordered_set<const BasicBlock*>& _Set, const bool _bForward = true)
+    template <class BB = BasicBlock>
+    static void DepthFirst(BB* _pRoot, std::vector<BB*>& _OutVec, std::unordered_set<BB*>& _Set, const bool _bForward = true)
     {
         if (_pRoot == nullptr)
             return;
@@ -92,7 +93,7 @@ struct CFGUtils
 
         const auto& Successors = _bForward ? _pRoot->GetSuccesors() : _pRoot->GetPredecessors();
 
-        for (const BasicBlock* pSucc : Successors)
+        for (BB* pSucc : Successors)
         {
             if (_Set.count(pSucc) == 0)
             {
@@ -102,10 +103,11 @@ struct CFGUtils
         }
     }
 
-    static std::vector<const BasicBlock*> DepthFirst(const BasicBlock* _pRoot, const bool _bForward = true)
+    template <class BB = BasicBlock>
+    static std::vector<BB*> DepthFirst(BB* _pRoot, const bool _bForward = true)
     {
-        std::unordered_set<const BasicBlock*> Set;
-        std::vector<const BasicBlock*> Vec;
+        std::unordered_set<BB*> Set;
+        std::vector<BB*> Vec;
         DepthFirst(_pRoot, Vec, Set);
 
         return Vec;

@@ -21,7 +21,7 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sUn
 
     const auto AddNode = [&cfg](const DotNode& node) -> BasicBlock*
     {
-        return cfg.AddNode(hlx::Hash(node.GetName()), node.GetName());
+        return cfg.AddNode(node.GetName());
     };
 
     for (const DotNode& node : _Graph)

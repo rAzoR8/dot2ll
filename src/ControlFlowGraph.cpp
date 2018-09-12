@@ -1,5 +1,10 @@
 #include "ControlFlowGraph.h"
 
+BasicBlock* ControlFlowGraph::AddNode(const std::string& _sName)
+{
+    return AddNode(hlx::Hash(_sName), _sName);
+}
+
 BasicBlock* ControlFlowGraph::AddNode(const uint64_t _uIdentifier, const std::string& _sName)
 {
     if (auto it = m_NodeMap.find(_uIdentifier); it != m_NodeMap.end())
