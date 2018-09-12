@@ -1,5 +1,6 @@
 #include "Instruction.h"
 #include "ControlFlowGraph.h"
+#include <algorithm>
 
 Instruction* Instruction::Nop()
 {
@@ -170,6 +171,20 @@ Instruction* Instruction::Type(const EType _kType, const uint32_t _uElementBits,
 
 Instruction* Instruction::Reset()
 {
+    // remove from successors predecessors
+    switch (kInstruction)
+    {
+    case kInstruction_BranchCond:
+        std::remove(pParent->m_Successors[0]->m_Predecessors.begin(), pParent->m_Successors[0]->m_Predecessors.end(), pParent);
+        // fall through
+    case kInstruction_Branch:
+        std::remove(pParent->m_Successors[1]->m_Predecessors.begin(), pParent->m_Successors[1]->m_Predecessors.end(), pParent);
+    default:
+        break;
+    }
+
+    pParent->m_Successors.clear();
+
     kInstruction = kInstruction_Undefined;
     uResultTypeId = InvalidId;
     Operands.clear();
