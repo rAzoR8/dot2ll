@@ -175,15 +175,13 @@ Instruction* Instruction::Reset()
     switch (kInstruction)
     {
     case kInstruction_BranchCond:
-        std::remove(pParent->m_Successors[0]->m_Predecessors.begin(), pParent->m_Successors[0]->m_Predecessors.end(), pParent);
-        // fall through
-    case kInstruction_Branch:
         std::remove(pParent->m_Successors[1]->m_Predecessors.begin(), pParent->m_Successors[1]->m_Predecessors.end(), pParent);
+    case kInstruction_Branch: // fall through
+        std::remove(pParent->m_Successors[0]->m_Predecessors.begin(), pParent->m_Successors[0]->m_Predecessors.end(), pParent);
+        pParent->m_Successors.clear();
     default:
         break;
-    }
-
-    pParent->m_Successors.clear();
+    }    
 
     kInstruction = kInstruction_Undefined;
     uResultTypeId = InvalidId;
