@@ -11,7 +11,24 @@ class Instruction
         uIdentifier(_uIdentifier), pParent(_pParent), sAlias(std::to_string(_uIdentifier)) {}
 
 public:
+    //Instruction(const Instruction&) = delete;
+    //Instruction(Instruction&&) = delete;
+    
+    Instruction& operator=(const Instruction& _Other);
+
     ~Instruction() {};    
+
+    const std::vector<Operand>& GetOperands() const { return Operands; }
+    const std::vector<Decoration> GetDecorations() const { return Decorations; }
+
+    const bool Is(const EDecoration _kDecoration) const;
+
+    const EInstruction GetInstruction() const { return kInstruction; }
+    const uint64_t& GetIdentifier() const { return uIdentifier; }
+    const uint64_t& GetResultTypeId() const { return uResultTypeId; }
+
+    void SetAlias(const std::string& _sAlias) { sAlias = _sAlias; };
+    const std::string& GetAlias() const { return sAlias; }
 
     // all instruction generators return their pointers if construction was successful, nullptr other wise
     Instruction* Nop();
@@ -29,24 +46,12 @@ public:
     Instruction* Branch(BasicBlock* _pTarget);
     Instruction* BranchCond(const Instruction* _pCondtion, BasicBlock* _pTrueTarget, BasicBlock* _pFalseTarget);
 
-    const std::vector<Operand>& GetOperands() const { return Operands; }
-    const std::vector<Decoration> GetDecorations() const { return Decorations; }
-
-    const bool Is(const EDecoration _kDecoration) const;
-
-    const EInstruction GetInstruction() const { return kInstruction; }
-    const uint64_t& GetIdentifier() const { return uIdentifier; }
-    const uint64_t& GetResultTypeId() const { return uResultTypeId; }
-
-    void SetAlias(const std::string& _sAlias) { sAlias = _sAlias; };
-    const std::string& GetAlias() const { return sAlias; }
+    Instruction* Reset();
 
 private:
     // to be called from function
     Instruction* FunctionParameter(const Instruction* _pType, const uint64_t _uIndex);
     Instruction* Type(const EType _kType, const uint32_t _uElementBits, const uint32_t _uElementCount, const std::vector<uint64_t>& _SubTypes = {}, const std::vector<Decoration>& _Decorations = {});
-
-    //Instruction* Reset();
 
 private:
     const uint64_t uIdentifier; // result identifier

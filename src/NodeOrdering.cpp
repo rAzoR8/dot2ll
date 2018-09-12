@@ -44,6 +44,13 @@ void NodeOdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFron
             if (pos1 <= pos && pos2 <= pos)
             {
                 BasicBlock* pVirtual = pBB->GetCFG()->AddNode(pBB->GetName() + "_VIRTORDER");
+                Instruction* pTerminator = pBB->GetTerminator();
+
+                // move cond branch to Virtual node
+                *pVirtual->AddInstruction() = *pTerminator;
+                // branch to virtual node
+                pTerminator->Reset()->Branch(pVirtual); 
+
                 if (_bPutVirtualFront)
                 {
                     _Order.push_front(pVirtual);
