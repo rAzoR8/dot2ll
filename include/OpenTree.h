@@ -32,23 +32,49 @@ struct OpenTreeNode
 
 class OpenTree
 {
+    static bool Armed(const OpenTreeNode* pNode) { return pNode->Armed(); };
+    static bool Visited(const OpenTreeNode* pNode) { return pNode->Visited(); };
+
 public:
     OpenTree() {};
     ~OpenTree() {};
 
     void Process(const NodeOrder& _Ordering);
-    
+
 private:
     void Prepare(NodeOrder& _Ordering);
 
     void AddNode(BasicBlock* _pBB);
 
-    std::vector<OpenTreeNode*> GetArmedPredecessors(BasicBlock* _pBB) const;
+    // return lowest ancestor of BB
+    OpenTreeNode* InterleavePathsToBB(BasicBlock* _pBB);
 
-    std::vector<OpenTreeNode*> GetVistedSuccessors(BasicBlock* _pBB) const;
+    OpenTreeNode* CommonAncestor(BasicBlock* _pBB) const;
+
+    template <class Filter>
+    std::vector<OpenTreeNode*> FilterNodes(const std::vector<BasicBlock*>& _BBs, const Filter& _Filter) const;
 
 private:
     std::vector<OpenTreeNode> m_Nodes;
     OpenTreeNode* m_pRoot = nullptr; // virtual root
     std::unordered_map<BasicBlock*, OpenTreeNode*> m_BBToNode;
 };
+
+template<class Filter>
+inline std::vector<OpenTreeNode*> OpenTree::FilterNodes(const std::vector<BasicBlock*>& _BBs, const Filter & _Filter) const
+{
+    std::vector<OpenTreeNode*> Nodes;
+
+    for (BasicBlock* pBB : _BBs)
+    {
+        if (auto it = m_BBToNode.find(pBB); it != m_BBToNode.end())
+        {
+            if (_Filter(it->second))
+            {
+                Nodes.push_back(it->second);
+            }
+        }
+    }
+
+    return Nodes;
+}

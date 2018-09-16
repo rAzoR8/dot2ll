@@ -1,4 +1,5 @@
 #include "OpenTree.h"
+#include <unordered_set>
 
 void OpenTree::Process(const NodeOrder& _Ordering)
 {
@@ -10,7 +11,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     for (BasicBlock* B : Ordering)
     {
         // Let P be the set of armed predecessors of B
-        std::vector<OpenTreeNode*> P = GetArmedPredecessors(B);
+        std::vector<OpenTreeNode*> P = FilterNodes(B->GetPredecessors(), Armed);
 
         // If P is non-empty
         if (P.empty() == false)
@@ -23,7 +24,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         AddNode(B);
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
-        std::vector<OpenTreeNode*> N = GetVistedSuccessors(B);
+        std::vector<OpenTreeNode*> N = FilterNodes(B->GetSuccesors(), Visited);
 
         // If N is non-empty
         if (N.empty() == false)
@@ -67,44 +68,76 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     }
     else
     {
-        // TODO: interleave
+        pNode->pParent = InterleavePathsToBB(_pBB);
     }
 
     pNode->pParent->Children.push_back(pNode);
 }
 
-std::vector<OpenTreeNode*> OpenTree::GetArmedPredecessors(BasicBlock* _pBB) const
+OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
 {
-    std::vector<OpenTreeNode*> ArmedPreds;
+    OpenTreeNode* pCommonAncestor = CommonAncestor(_pBB);
 
-    for (BasicBlock* pPred : _pBB->GetPredecessors())
-    {
-        if (auto it = m_BBToNode.find(pPred); it != m_BBToNode.end())
-        {
-            if (it->second->Armed())
-            {
-                ArmedPreds.push_back(it->second);
-            }
-        }
-    }
+    // TODO: traverse OT to leaves and merge paths (separate leave nodes because they have to come last)
 
-    return ArmedPreds;
+    OpenTreeNode* pLowestAncestor = m_pRoot;
+
+    return pLowestAncestor;
 }
 
-std::vector<OpenTreeNode*> OpenTree::GetVistedSuccessors(BasicBlock* _pBB) const
+OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
 {
-    std::vector<OpenTreeNode*> VisitedSuccessors;
+    std::unordered_set<OpenTreeNode*> Ancestors;
 
-    for (BasicBlock* pSucc : _pBB->GetSuccesors())
+    const auto IsAncestorOf = [](OpenTreeNode* pAncestor, OpenTreeNode* pNode) -> bool
     {
-        if (auto it = m_BBToNode.find(pSucc); it != m_BBToNode.end())
+        while (pNode != nullptr)
         {
-            if (it->second->Visited())
-            {
-                VisitedSuccessors.push_back(it->second);
-            }
+            if (pAncestor == pNode->pParent)
+                return true;
+
+            pNode = pNode->pParent;
+        }
+
+        return false;
+    };
+
+    std::deque<OpenTreeNode*> Nodes;
+
+    auto VisitedPreds = FilterNodes(_pBB->GetPredecessors(), Visited);
+
+    // find shared ancestor in visited predecessors
+    for (OpenTreeNode* pVA : VisitedPreds)
+    {
+        Nodes.push_back(pVA);
+    }
+
+    while (Nodes.empty() == false)
+    {
+        OpenTreeNode* pAncestor = Nodes.front();
+        Nodes.pop_front();
+
+        bool bIsCommanAncestor = true;
+
+        // check if this ancestor is an ancestor of all predecessors
+        for (OpenTreeNode* pPred : VisitedPreds)
+        {
+            bIsCommanAncestor &= IsAncestorOf(pAncestor, pPred);
+        }
+
+        if (bIsCommanAncestor)
+        {
+            return pAncestor;
+        }
+
+        // add the ancestors ancestor
+        if (pAncestor->pParent != nullptr)
+        {
+            Nodes.push_back(pAncestor->pParent);
         }
     }
 
-    return VisitedSuccessors;
+    // todo: select lowest common ancestor?
+
+    return nullptr;
 }

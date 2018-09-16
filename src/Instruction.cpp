@@ -253,7 +253,7 @@ Instruction* Instruction::BranchCond(const Instruction* _pCondtion, BasicBlock* 
 {
     CHECK_INSTR;
 
-    if (_pTrueTarget != nullptr && _pFalseTarget != nullptr)
+    if (_pTrueTarget != nullptr && _pFalseTarget != nullptr && _pTrueTarget != _pFalseTarget)
     {
         _pTrueTarget->m_bSource = false;
         _pFalseTarget->m_bSource = false;
