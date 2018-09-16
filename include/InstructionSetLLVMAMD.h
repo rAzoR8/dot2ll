@@ -2,6 +2,11 @@
 
 #include "InstructionSet.h"
 
+enum ECallingConventionLLVMAMD : uint32_t
+{
+    kCallingConventionLLVMAMD_PixelShader = 0,
+};
+
 class InstructionSetLLVMAMD : public InstructionSet
 {
 public:

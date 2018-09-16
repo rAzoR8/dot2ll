@@ -1,8 +1,9 @@
 #include "Function.h"
 
-Function::Function(const std::string& _sName) :
+Function::Function(const std::string& _sName, const CallingConvention _CallConv) :
     m_sName(_sName),
-    m_pEntryBlock(m_CFG.AddNode(m_sName + "_ENTRYPOINT"))
+    m_pEntryBlock(m_CFG.AddNode(m_sName + "_ENTRYPOINT")),
+    m_CallConv(_CallConv)
 {
 }
 

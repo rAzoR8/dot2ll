@@ -27,7 +27,7 @@ std::string InstructionSetLLVMAMD::ResolveTypeName(const TypeInfo& _Type)
             sType = "half";
         else if(_Type.uElementBits == 32u)
             sType = "float";
-        else if (_Type.uElementBits == 32u)
+        else if (_Type.uElementBits == 64u)
             sType = "double";
         break;
     case kType_Pointer:
@@ -134,7 +134,15 @@ bool InstructionSetLLVMAMD::SerializeInstruction(const Function& _Function, cons
 
 bool InstructionSetLLVMAMD::SerializeListing(const Function& _Function, std::ostream& _OutStream)
 {
-    _OutStream << "define amdgpu_ps ";
+    // resolve calling convention
+    switch (_Function.GetCallingConvention().uIdentifier)
+    {
+    case kCallingConventionLLVMAMD_PixelShader:
+    default:
+        _OutStream << "define amdgpu_ps "; // currently only PS works
+        break;
+    }
+    
     _OutStream << ResolveTypeName(_Function.GetCFG().ResolveType(_Function.GetReturnType()));
     _OutStream << " @" << _Function.GetName() << '(';
 

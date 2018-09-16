@@ -12,7 +12,7 @@ BasicBlock* ControlFlowGraph::AddNode(const uint64_t _uIdentifier, const std::st
         return it->second;
     }
 
-    BasicBlock* pNode = &m_Nodes.emplace_back(BasicBlock(_uIdentifier, this, _sName.empty() ? "BB_" + std::to_string(_uIdentifier) : _sName));
+    BasicBlock* pNode = &m_Nodes.emplace_back(_uIdentifier, this, _sName.empty() ? "BB_" + std::to_string(_uIdentifier) : _sName);
     m_NodeMap[_uIdentifier] = pNode;
 
     return pNode;
@@ -74,10 +74,10 @@ TypeInfo ControlFlowGraph::ResolveType(const Instruction* _pType) const
     return Info;
 }
 
-Instruction* ControlFlowGraph::GetInstruction(const uint64_t _uId)
-{
-    return _uId < m_Instructions.size() ? m_Instructions[_uId] : nullptr;
-}
+//Instruction* ControlFlowGraph::GetInstruction(const uint64_t _uId)
+//{
+//    return _uId < m_Instructions.size() ? m_Instructions[_uId] : nullptr;
+//}
 
 Instruction* ControlFlowGraph::GetInstruction(const uint64_t _uId) const
 {

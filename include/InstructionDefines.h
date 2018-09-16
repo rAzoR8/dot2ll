@@ -48,7 +48,7 @@ enum EDecoration : uint32_t
 {
     kDecoration_Const = 0u,
     kDecoration_Divergent,
-    kDecoration_Name,
+    kDecoration_String,
     kDecoration_UserExt
 };
 

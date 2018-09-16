@@ -10,15 +10,18 @@ class BasicBlock
     friend class ControlFlowGraph;
     friend class Function;
 
-    BasicBlock(const uint64_t _uIndentifier, ControlFlowGraph* _pParent, const std::string& _sName) :
-        m_uIdentifier(_uIndentifier), m_pParent(_pParent), m_sName(_sName)
-    {        
-    }
-
 public:
     using Successors = std::vector<BasicBlock*>;
     using Predecessors = std::vector<BasicBlock*>;
     using Instructions = std::deque<Instruction>;
+
+    BasicBlock(const uint64_t _uIndentifier, ControlFlowGraph* _pParent, const std::string& _sName) :
+        m_uIdentifier(_uIndentifier), m_pParent(_pParent), m_sName(_sName)
+    {
+    }
+
+    BasicBlock(BasicBlock&& _Other);
+    BasicBlock(const BasicBlock&) = delete;
 
     ~BasicBlock() {};
 

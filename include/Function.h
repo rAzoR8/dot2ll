@@ -3,10 +3,15 @@
 #include "ControlFlowGraph.h"
 #include "DominatorTree.h"
 
+struct CallingConvention
+{
+    uint32_t uIdentifier = 0u; // placeholder data for now
+};
+
 class Function
 {
 public:
-    Function(const std::string& _sName = "func");
+    Function(const std::string& _sName = "func", const CallingConvention _CallConv = {});
 
     Function(Function&& _Other) :
         m_sName(std::move(_Other.m_sName)),
@@ -14,7 +19,8 @@ public:
         m_pEntryBlock(_Other.m_pEntryBlock),
         m_Parameters(std::move(_Other.m_Parameters)),
         m_pReturnType(_Other.m_pReturnType),
-        m_Types(std::move(_Other.m_Types))
+        m_Types(std::move(_Other.m_Types)),
+        m_CallConv(std::move(_Other.m_CallConv))
     {    
     }
 
@@ -38,6 +44,9 @@ public:
 
     const std::string& GetName() const { return m_sName; }
 
+    void SetCallingConvention(const CallingConvention& _CallConv) { m_CallConv = _CallConv; }
+    const CallingConvention& GetCallingConvention() const { return m_CallConv; }
+
 private:
     const std::string m_sName;
     ControlFlowGraph m_CFG;
@@ -49,4 +58,6 @@ private:
 
     // type hash -> instruction id
     std::unordered_map<uint64_t, Instruction*> m_Types;
+
+    CallingConvention m_CallConv;
 };

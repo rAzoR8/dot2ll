@@ -41,7 +41,7 @@ void Instruction::StringDecoration(const std::string& _sName)
     {
         if (i++ % 4 == 0)
         {
-            pChar = reinterpret_cast<char*>(&Decorations.emplace_back(kDecoration_Name, 0u).uUserData);
+            pChar = reinterpret_cast<char*>(&Decorations.emplace_back(kDecoration_String, 0u).uUserData);
         }
 
         *pChar = c;
@@ -55,7 +55,7 @@ std::string Instruction::GetStringDecoration() const
 
     for (const Decoration& d : Decorations)
     {
-        if (d.kType == kDecoration_Name)
+        if (d.kType == kDecoration_String)
         {
             for (uint32_t i = 0u; i < 4; ++i)
             {
@@ -71,15 +71,15 @@ std::string Instruction::GetStringDecoration() const
     return sDecoration;
 }
 
-Instruction& Instruction::operator=(const Instruction & _Other)
-{
-    kInstruction = _Other.kInstruction;
-    Operands = _Other.Operands;
-    Decorations = _Other.Decorations;
-    sAlias = _Other.sAlias;
-    uResultTypeId = _Other.uResultTypeId;
-    return *this;
-}
+//Instruction& Instruction::operator=(const Instruction& _Other)
+//{
+//    kInstruction = _Other.kInstruction;
+//    Operands = _Other.Operands;
+//    Decorations = _Other.Decorations;
+//    sAlias = _Other.sAlias;
+//    uResultTypeId = _Other.uResultTypeId;
+//    return *this;
+//}
 
 const bool Instruction::Is(const EDecoration _kDecoration) const
 {
@@ -169,15 +169,44 @@ Instruction* Instruction::Type(const EType _kType, const uint32_t _uElementBits,
     return this;
 }
 
+Instruction* Instruction::GetOperandInstr(const uint32_t _uIndex) const
+{
+    if (_uIndex < Operands.size() && Operands[_uIndex].kType == kOperandType_InstructionId)
+    {
+        return pParent->GetCFG()->GetInstruction(Operands[_uIndex].uId);
+    }
+
+    return nullptr;
+}
+
+BasicBlock* Instruction::GetOperandBB(const uint32_t _uIndex) const
+{
+    if (_uIndex < Operands.size() && Operands[_uIndex].kType == kOperandType_BasicBlockId)
+    {
+        return pParent->GetCFG()->GetNode(Operands[_uIndex].uId);
+    }
+
+    return nullptr;
+}
+
 Instruction* Instruction::Reset()
 {
+    auto remove = [](std::vector<BasicBlock*>& _Preds, const BasicBlock* _pParent)
+    {
+        auto it = std::remove(_Preds.begin(), _Preds.end(), _pParent);
+        if (it != _Preds.end())
+        {
+            _Preds.erase(it);
+        }
+    };
+
     // remove from successors predecessors
     switch (kInstruction)
     {
     case kInstruction_BranchCond:
-        std::remove(pParent->m_Successors[1]->m_Predecessors.begin(), pParent->m_Successors[1]->m_Predecessors.end(), pParent);
+        remove(pParent->m_Successors[1]->m_Predecessors, pParent);
     case kInstruction_Branch: // fall through
-        std::remove(pParent->m_Successors[0]->m_Predecessors.begin(), pParent->m_Successors[0]->m_Predecessors.end(), pParent);
+        remove(pParent->m_Successors[0]->m_Predecessors, pParent);
         pParent->m_Successors.clear();
     default:
         break;

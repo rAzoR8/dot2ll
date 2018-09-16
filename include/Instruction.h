@@ -5,16 +5,15 @@
 class Instruction
 {
     friend class BasicBlock;
-    friend class Function;
-    
+    friend class Function;    
+
+public:
     Instruction(const uint64_t _uIdentifier, BasicBlock* _pParent) :
         uIdentifier(_uIdentifier), pParent(_pParent), sAlias(std::to_string(_uIdentifier)) {}
 
-public:
-    //Instruction(const Instruction&) = delete;
-    //Instruction(Instruction&&) = delete;
-    
-    Instruction& operator=(const Instruction& _Other);
+    Instruction(const Instruction&) = delete;
+    Instruction(Instruction&&) = delete;    
+    Instruction& operator=(const Instruction& _Other) = delete;
 
     ~Instruction() {};    
 
@@ -47,6 +46,9 @@ public:
     Instruction* BranchCond(const Instruction* _pCondtion, BasicBlock* _pTrueTarget, BasicBlock* _pFalseTarget);
 
     Instruction* Reset();
+
+    Instruction* GetOperandInstr(const uint32_t _uIndex) const;
+    BasicBlock* GetOperandBB(const uint32_t _uIndex) const;
 
 private:
     // to be called from function

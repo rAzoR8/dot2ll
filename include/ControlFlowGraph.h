@@ -38,7 +38,7 @@ public:
     TypeInfo ResolveType(const uint64_t _uTypeId) const;
     TypeInfo ResolveType(const Instruction* _pType) const;
 
-    Instruction* GetInstruction(const uint64_t _uId);
+    //Instruction* GetInstruction(const uint64_t _uId);
     Instruction* GetInstruction(const uint64_t _uId) const;
 
 private:
