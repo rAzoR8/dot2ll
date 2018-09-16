@@ -1,7 +1,7 @@
 #include "NodeOrdering.h"
 #include "CFGUtils.h"
 
-NodeOrder NodeOdering::ComputeDepthFirst(BasicBlock* _pRoot)
+NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
 {
     NodeOrder Order;
     BasicBlock* pExit = nullptr;
@@ -26,7 +26,7 @@ NodeOrder NodeOdering::ComputeDepthFirst(BasicBlock* _pRoot)
     return Order;
 }
 
-void NodeOdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront)
+void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront)
 {
     for (auto it = _Order.begin(); it != _Order.end(); ++it)
     {

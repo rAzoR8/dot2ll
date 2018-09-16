@@ -14,6 +14,7 @@ public:
     Instruction(const Instruction&) = delete;
     Instruction(Instruction&&) = delete;    
     Instruction& operator=(const Instruction& _Other) = delete;
+    Instruction& operator=(Instruction&&) = delete;
 
     ~Instruction() {};    
 

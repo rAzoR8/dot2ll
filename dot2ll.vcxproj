@@ -135,6 +135,7 @@
     <ClCompile Include="src\Instruction.cpp" />
     <ClCompile Include="src\InstructionSetLLVMAMD.cpp" />
     <ClCompile Include="src\NodeOrdering.cpp" />
+    <ClCompile Include="src\OpenTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dotparse\include\DotGraph.h" />

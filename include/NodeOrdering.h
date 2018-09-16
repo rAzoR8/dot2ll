@@ -5,11 +5,11 @@
 
 using NodeOrder = std::list<BasicBlock*>;
 
-class NodeOdering
+class NodeOrdering
 {
 public:
-    NodeOdering() {};
-    ~NodeOdering() {};
+    NodeOrdering() {};
+    ~NodeOrdering() {};
 
     static NodeOrder ComputeDepthFirst(BasicBlock* _pRoot);
 

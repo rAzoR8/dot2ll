@@ -11,8 +11,7 @@ class BasicBlock
     friend class Function;
 
 public:
-    using Successors = std::vector<BasicBlock*>;
-    using Predecessors = std::vector<BasicBlock*>;
+    using Vec = std::vector<BasicBlock*>;
     using Instructions = std::deque<Instruction>;
 
     BasicBlock(const uint64_t _uIndentifier, ControlFlowGraph* _pParent, const std::string& _sName) :
@@ -26,8 +25,8 @@ public:
     ~BasicBlock() {};
 
     const Instructions& GetInstructions() const { return m_Instructions; }
-    const Successors& GetSuccesors() const { return m_Successors; }
-    const Predecessors& GetPredecessors() const { return m_Predecessors; }
+    const Vec& GetSuccesors() const { return m_Successors; }
+    const Vec& GetPredecessors() const { return m_Predecessors; }
 
     ControlFlowGraph* GetCFG() const { return m_pParent; }
 
@@ -61,8 +60,8 @@ private:
     bool m_bDivergent = false; // non uniform
 
     Instructions m_Instructions;
-    Successors m_Successors;
-    Predecessors m_Predecessors;
+    Vec m_Successors;
+    Vec m_Predecessors;
     ControlFlowGraph* const m_pParent;
 
     Instruction* m_pTerminator = nullptr;

@@ -71,16 +71,6 @@ std::string Instruction::GetStringDecoration() const
     return sDecoration;
 }
 
-//Instruction& Instruction::operator=(const Instruction& _Other)
-//{
-//    kInstruction = _Other.kInstruction;
-//    Operands = _Other.Operands;
-//    Decorations = _Other.Decorations;
-//    sAlias = _Other.sAlias;
-//    uResultTypeId = _Other.uResultTypeId;
-//    return *this;
-//}
-
 const bool Instruction::Is(const EDecoration _kDecoration) const
 {
     for (const Decoration& d : Decorations)

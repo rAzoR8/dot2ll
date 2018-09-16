@@ -42,6 +42,9 @@
     <ClCompile Include="src\NodeOrdering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\OpenTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dotparse\include\DotGraph.h">
