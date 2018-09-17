@@ -2,6 +2,7 @@
 
 #include "NodeOrdering.h"
 #include <unordered_map>
+#include <algorithm>
 
 struct OpenTreeNode
 {
@@ -10,15 +11,27 @@ struct OpenTreeNode
     {
         if (_pBB != nullptr)
         {
-            Incomping = _pBB->GetPredecessors();
+            Incoming = _pBB->GetPredecessors();
             Outgoing = _pBB->GetSuccesors();
         }
     }
 
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
     bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
-    bool Visited() const { return Incomping.empty() && Outgoing.empty(); }
+    bool Visited() const { return Incoming.empty() && Outgoing.empty(); }
     bool InOT() const { return pParent != nullptr; }
+    void Close(BasicBlock* _OpenEdge)
+    {       
+        if (auto it = std::remove(Incoming.begin(), Incoming.end(), _OpenEdge); it != Incoming.end())
+        {
+            Incoming.erase(it);
+        }
+
+        if (auto it = std::remove(Outgoing.begin(), Outgoing.end(), _OpenEdge); it != Outgoing.end())
+        {
+            Outgoing.erase(it);
+        }
+    };
 
     std::vector<OpenTreeNode*> Children;
 
@@ -26,7 +39,7 @@ struct OpenTreeNode
     BasicBlock* pBB = nullptr;
 
     // open edges
-    BasicBlock::Vec Incomping;
+    BasicBlock::Vec Incoming;
     BasicBlock::Vec Outgoing;
 };
 

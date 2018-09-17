@@ -71,18 +71,60 @@ void OpenTree::AddNode(BasicBlock* _pBB)
         pNode->pParent = InterleavePathsToBB(_pBB);
     }
 
+    // close edge from BB to Pred
+    for (BasicBlock* pPred : Preds)
+    {
+        m_BBToNode[pPred]->Close(pPred);
+    }
+
     pNode->pParent->Children.push_back(pNode);
 }
 
 OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
 {
-    OpenTreeNode* pCommonAncestor = CommonAncestor(_pBB);
+    std::deque<OpenTreeNode*> Branches;
+    std::vector<OpenTreeNode*> Leaves;
 
-    // TODO: traverse OT to leaves and merge paths (separate leave nodes because they have to come last)
+    OpenTreeNode* pPrev = CommonAncestor(_pBB);
 
-    OpenTreeNode* pLowestAncestor = m_pRoot;
+    for (OpenTreeNode* pBranch : pPrev->Children)
+    {
+        Branches.push_back(pBranch);
+    }
 
-    return pLowestAncestor;
+    while (Branches.empty() == false)
+    {
+        OpenTreeNode* pBranch = Branches.front();
+        Branches.pop_front();
+
+        if (pBranch->Children.empty())
+        {
+            Leaves.push_back(pBranch);
+            continue;
+        }
+        else
+        {
+            for (OpenTreeNode* pChild : pBranch->Children)
+            {
+                Branches.push_back(pChild);
+            }
+        }
+
+        pPrev->Children = { pBranch };
+        pBranch->pParent = pPrev;
+        pPrev = pBranch;
+    }
+
+    //OpenTreeNode* pLowestAncestor = m_pRoot;
+
+    for (OpenTreeNode* pLeave : Leaves)
+    {
+        pPrev->Children = { pLeave };
+        pLeave->pParent = pPrev;
+        pPrev = pLeave;
+    }
+
+    return pPrev;
 }
 
 OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
@@ -139,5 +181,5 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
 
     // todo: select lowest common ancestor?
 
-    return nullptr;
+    return m_pRoot;
 }
