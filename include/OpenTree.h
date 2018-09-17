@@ -19,7 +19,7 @@ struct OpenTreeNode
 
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
     bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
-    bool Visited() const { return Incoming.empty() && Outgoing.empty(); }
+    bool Visited() const { return bVisited; }
     bool InOT() const { return pParent != nullptr; }
 
     void Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed = false);
@@ -28,6 +28,7 @@ struct OpenTreeNode
 
     OpenTreeNode* pParent = nullptr;
     BasicBlock* pBB = nullptr;
+    bool bVisited = false;
 
     // open edges
     BasicBlock::Vec Incoming;

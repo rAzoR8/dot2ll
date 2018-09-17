@@ -10,7 +10,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
-        // LLVM code ignores virtual nodes, why?
+        // LLVM code ignores virtual nodes for rerouting, why?
 
         // Let P be the set of armed predecessors of B
         std::vector<OpenTreeNode*> P = FilterNodes(B->GetPredecessors(), Armed);
@@ -93,7 +93,6 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     pNode->pParent = InterleavePathsToBB(_pBB);
     pNode->pParent->Children.push_back(pNode);
 
-
     // close edge from BB to Pred
     // is this the right point to close the edge?
     // this changes the visited preds, so after interleaving makes sense
@@ -101,6 +100,8 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     {
         m_BBToNode[pPred]->Close(pPred);
     }
+
+    pNode->bVisited = true;
 }
 
 void OpenTree::Reroute(const OpenSubTreeUnion& _Subtree)
@@ -111,22 +112,45 @@ void OpenTree::Reroute(const OpenSubTreeUnion& _Subtree)
     
     for (OpenTreeNode* pNode : _Subtree.GetNodes())
     {
-        Instruction* pTerminator = pNode->pBB->GetTerminator();
+        if (pNode->Outgoing.empty())
+            continue;
 
-        if (pTerminator->GetInstruction() == kInstruction_Branch)
-        {
-        
-        }
-        else if (pTerminator->GetInstruction() == kInstruction_BranchCond)
-        {
-        
-        }
+        Instruction* pTerminator = pNode->pBB->GetTerminator();        
 
-        for (BasicBlock* pOutgoing : pNode->Outgoing)
+        if (pNode->Outgoing.size() == 1u)
         {
+            pTerminator->Reset()->Branch(pFlow);
             
-        }        
+            if (pFlow->GetTerminator() == nullptr)
+            {
+                pFlow->AddInstruction()->Branch(pNode->Outgoing[0]);
+            }
+
+            pFlowNode->Incoming.push_back(pNode->Outgoing[0]);
+        }
+        else if (pNode->Outgoing.size() == 2u)
+        {
+            Instruction* pCondition = pTerminator->GetOperandInstr(0u);
+
+            pTerminator->Reset()->Branch(pFlow);
+
+            if (pFlow->GetTerminator() == nullptr)
+            {
+                pFlow->AddInstruction()->BranchCond(pCondition, pNode->Outgoing[0], pNode->Outgoing[1]);
+            }
+
+            pFlowNode->Incoming.push_back(pNode->Outgoing[0]);
+            pFlowNode->Incoming.push_back(pNode->Outgoing[1]);
+        }
+        else
+        {
+            // TODO: 
+        }
+
+        pNode->Outgoing = { pFlow };      
     }
+
+    AddNode(pFlow);
 }
 
 // interleaves all node paths up until _pBB, returns last leave node (new ancestor)
@@ -155,6 +179,8 @@ OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
         }
         else
         {
+
+            // TODO: check if the node is an ancestor
             for (OpenTreeNode* pChild : pBranch->Children)
             {
                 Branches.push_back(pChild);
@@ -252,7 +278,7 @@ void OpenTreeNode::Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed)
         Outgoing.erase(it);
     }    
 
-    if (_bRemoveClosed && pParent != nullptr && Visited())
+    if (_bRemoveClosed && pParent != nullptr && Outgoing.empty() && Incoming.empty())
     {        
         // move this nodes children to the parent
         for (OpenTreeNode* pChild : Children)
@@ -263,7 +289,7 @@ void OpenTreeNode::Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed)
         }
 
         // close outgoing edge to this node
-        pParent->Close(pBB, _bRemoveClosed);
+        //pParent->Close(pBB, _bRemoveClosed);
     }
 };
 
