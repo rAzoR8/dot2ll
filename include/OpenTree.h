@@ -42,8 +42,8 @@ public:
     const std::unordered_set<OpenTreeNode*>& GetNodes() const { return m_Nodes; }
     const std::unordered_set<OpenTreeNode*>& GetRoots() const { return m_Roots; }
 
-    const bool HasOpenOutgoingNotLeadingTo(BasicBlock* _pBB) const;
-    const bool HasMultiRootsOrMultiUniqueOutgoing() const;
+    const bool HasOutgoingNotLeadingTo(BasicBlock* _pBB) const;
+    const bool HasMultiRootsOrOutgoing() const;
 
 private:
     std::unordered_set<OpenTreeNode*> m_Nodes;

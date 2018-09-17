@@ -22,7 +22,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             OpenSubTreeUnion S(P);
 
             // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
-            if (S.HasOpenOutgoingNotLeadingTo(B))
+            if (S.HasOutgoingNotLeadingTo(B))
             {
                 // Reroute
             }
@@ -42,7 +42,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             OpenSubTreeUnion S(N);
 
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
-            if (S.HasMultiRootsOrMultiUniqueOutgoing())
+            if (S.HasMultiRootsOrOutgoing())
             {
                 // Reroute
             }
@@ -279,7 +279,7 @@ OpenSubTreeUnion::OpenSubTreeUnion(const std::vector<OpenTreeNode*> _Roots)
     }
 }
 
-const bool OpenSubTreeUnion::HasOpenOutgoingNotLeadingTo(BasicBlock* _pBB) const
+const bool OpenSubTreeUnion::HasOutgoingNotLeadingTo(BasicBlock* _pBB) const
 {
     for (OpenTreeNode* pNode : m_Nodes)
     {
@@ -296,7 +296,7 @@ const bool OpenSubTreeUnion::HasOpenOutgoingNotLeadingTo(BasicBlock* _pBB) const
     return false;
 }
 
-const bool OpenSubTreeUnion::HasMultiRootsOrMultiUniqueOutgoing() const
+const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
 {
     if (m_Roots.size() > 1u)
         return true;
