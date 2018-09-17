@@ -102,6 +102,11 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     }
 }
 
+void OpenTree::RemoveNode(OpenTreeNode* _pClosedNode)
+{
+    
+}
+
 // interleaves all node paths up until _pBB, returns last leave node (new ancestor)
 OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
 {
@@ -213,7 +218,7 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
     return m_pRoot;
 }
 
-void OpenTreeNode::Close(BasicBlock* _OpenEdge)
+void OpenTreeNode::Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed)
 {
     if (auto it = std::remove(Incoming.begin(), Incoming.end(), _OpenEdge); it != Incoming.end())
     {
@@ -223,6 +228,20 @@ void OpenTreeNode::Close(BasicBlock* _OpenEdge)
     if (auto it = std::remove(Outgoing.begin(), Outgoing.end(), _OpenEdge); it != Outgoing.end())
     {
         Outgoing.erase(it);
+    }    
+
+    if (_bRemoveClosed && pParent != nullptr && Visited())
+    {        
+        // move this nodes children to the parent
+        for (OpenTreeNode* pChild : Children)
+        {
+            pParent->Children.push_back(pChild);
+            pParent->Outgoing.push_back(pChild->pBB); // is this correct?
+            pChild->pParent = pParent;
+        }
+
+        // close outgoing edge to this node
+        pParent->Close(pBB, _bRemoveClosed);
     }
 };
 

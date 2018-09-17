@@ -21,7 +21,8 @@ struct OpenTreeNode
     bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
     bool Visited() const { return Incoming.empty() && Outgoing.empty(); }
     bool InOT() const { return pParent != nullptr; }
-    void Close(BasicBlock* _OpenEdge);
+
+    void Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed = false);
 
     std::vector<OpenTreeNode*> Children;
 
@@ -64,6 +65,7 @@ private:
     void Prepare(NodeOrder& _Ordering);
 
     void AddNode(BasicBlock* _pBB);
+    void RemoveNode(OpenTreeNode* _pClosedNode);
 
     // return lowest ancestor of BB
     OpenTreeNode* InterleavePathsToBB(BasicBlock* _pBB);
