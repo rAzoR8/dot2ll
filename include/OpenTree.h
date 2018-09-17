@@ -2,6 +2,7 @@
 
 #include "NodeOrdering.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <algorithm>
 
 struct OpenTreeNode
@@ -20,18 +21,7 @@ struct OpenTreeNode
     bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
     bool Visited() const { return Incoming.empty() && Outgoing.empty(); }
     bool InOT() const { return pParent != nullptr; }
-    void Close(BasicBlock* _OpenEdge)
-    {       
-        if (auto it = std::remove(Incoming.begin(), Incoming.end(), _OpenEdge); it != Incoming.end())
-        {
-            Incoming.erase(it);
-        }
-
-        if (auto it = std::remove(Outgoing.begin(), Outgoing.end(), _OpenEdge); it != Outgoing.end())
-        {
-            Outgoing.erase(it);
-        }
-    };
+    void Close(BasicBlock* _OpenEdge);
 
     std::vector<OpenTreeNode*> Children;
 
@@ -41,6 +31,22 @@ struct OpenTreeNode
     // open edges
     BasicBlock::Vec Incoming;
     BasicBlock::Vec Outgoing;
+};
+
+class OpenSubTreeUnion
+{
+public:
+    OpenSubTreeUnion(const std::vector<OpenTreeNode*> _Roots);
+
+    const std::unordered_set<OpenTreeNode*>& GetNodes() const { return m_Nodes; }
+    const std::unordered_set<OpenTreeNode*>& GetRoots() const { return m_Roots; }
+
+    const bool HasOpenOutgoingNotLeadingTo(BasicBlock* _pBB) const;
+    const bool HasMultiRootsOrMultiUniqueOutgoing() const;
+
+private:
+    std::unordered_set<OpenTreeNode*> m_Nodes;
+    std::unordered_set<OpenTreeNode*> m_Roots;
 };
 
 class OpenTree

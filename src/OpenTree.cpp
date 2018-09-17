@@ -8,8 +8,10 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     Prepare(Ordering);
 
     // For each basic block B in the ordering
-    for (BasicBlock* B : Ordering)
+    for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
+        // LLVM code ignores virtual nodes, why?
+
         // Let P be the set of armed predecessors of B
         std::vector<OpenTreeNode*> P = FilterNodes(B->GetPredecessors(), Armed);
 
@@ -17,10 +19,17 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         if (P.empty() == false)
         {
             // Let S be the set of subtrees rooted at nodes in P
+            OpenSubTreeUnion S(P);
 
             // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
+            if (S.HasOpenOutgoingNotLeadingTo(B))
+            {
+                // Reroute
+            }
         }
 
+        // why add the node after armed predecessors have been defused?
+        // => this makes sure B will be the PostDom.
         AddNode(B);
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
@@ -30,8 +39,13 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         if (N.empty() == false)
         {
             // Let S be the set of subtrees routed at nodes in N.
+            OpenSubTreeUnion S(N);
 
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
+            if (S.HasMultiRootsOrMultiUniqueOutgoing())
+            {
+                // Reroute
+            }
         }
     }
 }
@@ -197,4 +211,89 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
     // todo: select lowest common ancestor?
 
     return m_pRoot;
+}
+
+void OpenTreeNode::Close(BasicBlock* _OpenEdge)
+{
+    if (auto it = std::remove(Incoming.begin(), Incoming.end(), _OpenEdge); it != Incoming.end())
+    {
+        Incoming.erase(it);
+    }
+
+    if (auto it = std::remove(Outgoing.begin(), Outgoing.end(), _OpenEdge); it != Outgoing.end())
+    {
+        Outgoing.erase(it);
+    }
+};
+
+OpenSubTreeUnion::OpenSubTreeUnion(const std::vector<OpenTreeNode*> _Roots)
+{
+    for (OpenTreeNode* pRoot : _Roots)
+    {
+        // skip duplicates (backwardeges from armed preds)
+        if (m_Nodes.count(pRoot) != 0)
+            continue;
+
+        m_Roots.insert(pRoot);
+
+        std::deque<OpenTreeNode*> Stack = { pRoot }; // traversal stack
+        
+        while (Stack.empty() == false)
+        {
+            OpenTreeNode* pNode = Stack.back();
+            Stack.pop_back();
+
+            m_Nodes.insert(pNode);
+
+            for (OpenTreeNode* pChild : pNode->Children)
+            {
+                if (m_Nodes.count(pChild) == 0)
+                {
+                    Stack.push_back(pChild);
+                }
+                else // node is a child => cannot be a root
+                {
+                    m_Roots.erase(pChild);
+                }
+            }
+        }
+    }
+}
+
+const bool OpenSubTreeUnion::HasOpenOutgoingNotLeadingTo(BasicBlock* _pBB) const
+{
+    for (OpenTreeNode* pNode : m_Nodes)
+    {
+        if (pNode->Outgoing.empty() == false)
+        {
+            // outgoing has no open edge to B
+            if (std::find(pNode->Outgoing.begin(), pNode->Outgoing.end(), _pBB) != pNode->Outgoing.end())
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+const bool OpenSubTreeUnion::HasMultiRootsOrMultiUniqueOutgoing() const
+{
+    if (m_Roots.size() > 1u)
+        return true;
+
+    OpenTreeNode* pOpenOutgoing = nullptr;
+    for (OpenTreeNode* pNode : m_Nodes)
+    {
+        if (pOpenOutgoing == nullptr)
+        {
+            pOpenOutgoing = pNode;
+        }
+        else if (pOpenOutgoing != pNode)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
