@@ -80,6 +80,7 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     pNode->pParent->Children.push_back(pNode);
 }
 
+// interleaves all node paths up until _pBB, returns last leave node (new ancestor)
 OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
 {
     std::deque<OpenTreeNode*> Branches;
@@ -92,6 +93,7 @@ OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
         Branches.push_back(pBranch);
     }
 
+    // traverse branches and concatenate
     while (Branches.empty() == false)
     {
         OpenTreeNode* pBranch = Branches.front();
@@ -115,10 +117,14 @@ OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
         pPrev = pBranch;
     }
 
-    //OpenTreeNode* pLowestAncestor = m_pRoot;
+    // why do we need to merge leaves which are not ancestors?
+    // pPrev->Children = Leaves;
 
     for (OpenTreeNode* pLeave : Leaves)
     {
+        if (pLeave->pBB == _pBB) // skip target node
+            continue;
+
         pPrev->Children = { pLeave };
         pLeave->pParent = pPrev;
         pPrev = pLeave;
@@ -127,6 +133,7 @@ OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
     return pPrev;
 }
 
+// returns root if non is found
 OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
 {
     std::unordered_set<OpenTreeNode*> Ancestors;
