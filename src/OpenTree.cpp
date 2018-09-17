@@ -1,5 +1,5 @@
 #include "OpenTree.h"
-#include <unordered_set>
+#include "ControlFlowGraph.h"
 
 void OpenTree::Process(const NodeOrder& _Ordering)
 {
@@ -24,7 +24,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
             if (S.HasOutgoingNotLeadingTo(B))
             {
-                // Reroute
+                Reroute(S);
             }
         }
 
@@ -44,7 +44,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
             if (S.HasMultiRootsOrOutgoing())
             {
-                // Reroute
+                Reroute(S);
             }
         }
     }
@@ -54,7 +54,8 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
 {
     NodeOrdering::PrepareOrdering(_Ordering);
 
-    m_Nodes.reserve(_Ordering.size() + 1u);
+    // reserve enough space for root & flow blocks
+    m_Nodes.reserve(_Ordering.size() * 2u);
     m_pRoot = &m_Nodes.emplace_back();
 
     for (BasicBlock* B : _Ordering)
@@ -102,9 +103,30 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     }
 }
 
-void OpenTree::RemoveNode(OpenTreeNode* _pClosedNode)
+void OpenTree::Reroute(const OpenSubTreeUnion& _Subtree)
 {
+    BasicBlock* pFlow = (*_Subtree.GetNodes().begin())->pBB->GetCFG()->AddNode("FLOW" + std::to_string(m_uNumFlowBlocks++));
+    OpenTreeNode* pFlowNode = &m_Nodes.emplace_back(pFlow);
+    m_BBToNode[pFlow] = pFlowNode;
     
+    for (OpenTreeNode* pNode : _Subtree.GetNodes())
+    {
+        Instruction* pTerminator = pNode->pBB->GetTerminator();
+
+        if (pTerminator->GetInstruction() == kInstruction_Branch)
+        {
+        
+        }
+        else if (pTerminator->GetInstruction() == kInstruction_BranchCond)
+        {
+        
+        }
+
+        for (BasicBlock* pOutgoing : pNode->Outgoing)
+        {
+            
+        }        
+    }
 }
 
 // interleaves all node paths up until _pBB, returns last leave node (new ancestor)

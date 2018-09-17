@@ -65,7 +65,8 @@ private:
     void Prepare(NodeOrder& _Ordering);
 
     void AddNode(BasicBlock* _pBB);
-    void RemoveNode(OpenTreeNode* _pClosedNode);
+
+    void Reroute(const OpenSubTreeUnion& _Subtree);
 
     // return lowest ancestor of BB
     OpenTreeNode* InterleavePathsToBB(BasicBlock* _pBB);
@@ -76,6 +77,7 @@ private:
     std::vector<OpenTreeNode*> FilterNodes(const std::vector<BasicBlock*>& _BBs, const Filter& _Filter) const;
 
 private:
+    uint32_t m_uNumFlowBlocks = 0u;
     std::vector<OpenTreeNode> m_Nodes;
     OpenTreeNode* m_pRoot = nullptr; // virtual root
     std::unordered_map<BasicBlock*, OpenTreeNode*> m_BBToNode;
