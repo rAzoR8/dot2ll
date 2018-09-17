@@ -52,32 +52,40 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
 void OpenTree::AddNode(BasicBlock* _pBB)
 {
     OpenTreeNode* pNode = m_BBToNode[_pBB];
-    const auto& Preds = _pBB->GetPredecessors();
+    const BasicBlock::Vec& Preds = _pBB->GetPredecessors();
 
-    if (Preds.size() == 0u)
-    {
-        // if no predecessor of B is in OT, add B as a child of the root
-        pNode->pParent = m_pRoot;        
-    }
-    else if (Preds.size() == 1u)
-    {
-        // If a predecessor of B is already in OT, find the lowest predecessor(s).
-        // If it is unique, add B as a child
+    //if (Preds.size() == 0u)
+    //{
+    //    // if no predecessor of B is in OT, add B as a child of the root
+    //    pNode->pParent = m_pRoot;        
+    //}
+    //else if (Preds.size() == 1u)
+    //{
+    //    // If a predecessor of B is already in OT, find the lowest predecessor(s).
+    //    // If it is unique, add B as a child
 
-        pNode->pParent = m_BBToNode[Preds[0]];
-    }
-    else
-    {
-        pNode->pParent = InterleavePathsToBB(_pBB);
-    }
+    //    pNode->pParent = m_BBToNode[Preds[0]];
+    //}
+    //else
+    //{
+    //    pNode->pParent = InterleavePathsToBB(_pBB);
+    //}
+
+    // This should handle all cases:
+    // if no common ancestor is found, root will be returned
+    // otherwise the last leave of the merged path is returned
+
+    pNode->pParent = InterleavePathsToBB(_pBB);
+    pNode->pParent->Children.push_back(pNode);
+
 
     // close edge from BB to Pred
+    // is this the right point to close the edge?
+    // this changes the visited preds, so after interleaving makes sense
     for (BasicBlock* pPred : Preds)
     {
         m_BBToNode[pPred]->Close(pPred);
     }
-
-    pNode->pParent->Children.push_back(pNode);
 }
 
 // interleaves all node paths up until _pBB, returns last leave node (new ancestor)
