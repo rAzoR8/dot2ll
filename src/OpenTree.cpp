@@ -106,7 +106,7 @@ void OpenTree::AddNode(BasicBlock* _pBB)
 
 void OpenTree::Reroute(const OpenSubTreeUnion& _Subtree)
 {
-    BasicBlock* pFlow = (*_Subtree.GetNodes().begin())->pBB->GetCFG()->AddNode("FLOW" + std::to_string(m_uNumFlowBlocks++));
+    BasicBlock* pFlow = (*_Subtree.GetNodes().begin())->pBB->GetCFG()->NewNode("FLOW" + std::to_string(m_uNumFlowBlocks++));
     OpenTreeNode* pFlowNode = &m_Nodes.emplace_back(pFlow);
     m_BBToNode[pFlow] = pFlowNode;
     

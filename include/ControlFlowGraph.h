@@ -21,9 +21,8 @@ public:
 
     ~ControlFlowGraph() {};
 
-    // use name hash as identifier
-    BasicBlock* AddNode(const std::string& _sName);
-    BasicBlock* AddNode(const uint64_t _uHash, const std::string& _sName = {});
+    // always creates a new node
+    BasicBlock* NewNode(const std::string& _sName = {});
 
     const Nodes& GetNodes() const { return m_Nodes; }
     Nodes& GetNodes() { return m_Nodes; }
@@ -34,20 +33,22 @@ public:
     typename Nodes::const_iterator begin() const noexcept { return m_Nodes.begin(); }
     typename Nodes::const_iterator end() const noexcept { return m_Nodes.end(); }
 
-    TypeInfo ResolveType(const uint64_t _uTypeId) const;
+    TypeInfo ResolveType(const InstrId _uTypeId) const;
     TypeInfo ResolveType(const Instruction* _pType) const;
 
     //Instruction* GetInstruction(const uint64_t _uId);
-    Instruction* GetInstruction(const uint64_t _uId) const;
+    Instruction* GetInstruction(const InstrId _uId) const { return _uId < m_Instructions.size() ? m_Instructions[_uId] : nullptr; };
 
-    BasicBlock* GetNode(const uint64_t _uId) { return _uId < m_Nodes.size() ? &m_Nodes[_uId] : nullptr; };
-    const BasicBlock* GetNode(const uint64_t _uId) const { return _uId < m_Nodes.size() ? &m_Nodes[_uId] : nullptr; };
+    BasicBlock* FindNode(const std::string& _sName);
+    const BasicBlock* FindNode(const std::string& _sName) const;
+
+    BasicBlock* GetNode(const InstrId _uId) { return _uId < m_Nodes.size() ? &m_Nodes[_uId] : nullptr; };
+    const BasicBlock* GetNode(const InstrId _uId) const { return _uId < m_Nodes.size() ? &m_Nodes[_uId] : nullptr; };
 
 private:
     Nodes m_Nodes;
 
     std::vector<Instruction*> m_Instructions;
-    // hash -> index into nodes
-    std::unordered_map<uint64_t, uint64_t> m_NodeIdentifierMap;
-    //std::unordered_map<uint64_t, BasicBlock*> m_NodeMap;
+    // name hash -> index into nodes
+    std::unordered_map<uint64_t, InstrId> m_NodeIdentifierMap;
 };

@@ -21,7 +21,12 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sUn
 
     const auto AddNode = [&cfg](const DotNode& node) -> BasicBlock*
     {
-        return cfg.AddNode(node.GetName());
+        BasicBlock* pBB = cfg.FindNode(node.GetName());
+        if (pBB == nullptr)
+        {
+            pBB = cfg.NewNode(node.GetName());
+        }
+        return pBB;
     };
 
     for (const DotNode& node : _Graph)

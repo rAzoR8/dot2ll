@@ -3,9 +3,15 @@
 #include "hlx/include/HashUtils.h"
 #include <vector>
 
-static constexpr auto InvalidId = UINT64_MAX;
+#ifdef USE_64BIT_IDS
+using InstrId = uint64_t;
+#else
+using InstrId = uint32_t;
+#endif
 
-enum EOperandType
+static constexpr auto InvalidId = std::numeric_limits<InstrId>::max();
+
+enum EOperandType : uint32_t
 {
     kOperandType_Constant = 0u,
     kOperandType_InstructionId,
@@ -14,14 +20,14 @@ enum EOperandType
 
 struct Operand
 {
-    Operand(const EOperandType _kType, const uint64_t _uId) :
+    Operand(const EOperandType _kType, const InstrId _uId) :
         kType(_kType), uId(_uId) {}
 
     EOperandType kType = kOperandType_InstructionId;
-    uint64_t uId = InvalidId;
+    InstrId uId = InvalidId;
 };
 
-enum EInstruction : uint64_t
+enum EInstruction : uint32_t
 {
     kInstruction_Nop = 0,
     kInstruction_Type,
@@ -72,7 +78,7 @@ struct Decoration
 
 enum EType : uint32_t
 {
-    kType_Void,
+    kType_Void = 0,
     kType_Bool,
     kType_Int,
     kType_UInt,

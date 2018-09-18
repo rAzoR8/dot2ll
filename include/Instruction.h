@@ -8,7 +8,7 @@ class Instruction
     friend class Function;    
 
 public:
-    Instruction(const uint64_t _uIdentifier, BasicBlock* _pParent) :
+    Instruction(const InstrId _uIdentifier, BasicBlock* _pParent) :
         uIdentifier(_uIdentifier), pParent(_pParent), sAlias(std::to_string(_uIdentifier)) {}
 
     Instruction(const Instruction&) = delete;
@@ -24,8 +24,8 @@ public:
     const bool Is(const EDecoration _kDecoration) const;
 
     const EInstruction GetInstruction() const { return kInstruction; }
-    const uint64_t& GetIdentifier() const { return uIdentifier; }
-    const uint64_t& GetResultTypeId() const { return uResultTypeId; }
+    const InstrId& GetIdentifier() const { return uIdentifier; }
+    const InstrId& GetResultTypeId() const { return uResultTypeId; }
 
     void SetAlias(const std::string& _sAlias) { sAlias = _sAlias; };
     const std::string& GetAlias() const { return sAlias; }
@@ -38,7 +38,7 @@ public:
     void StringDecoration(const std::string& _sString);
     std::string GetStringDecoration() const;
 
-    Instruction* Constant(const Instruction* _pType, const std::vector<uint64_t>& _ConstantData);
+    Instruction* Constant(const Instruction* _pType, const std::vector<InstrId>& _ConstantData);
 
     Instruction* Equal(const Instruction* _pLeft, const Instruction* _pRight);
 
@@ -48,21 +48,21 @@ public:
 
     Instruction* Reset();
 
-    Instruction* GetOperandInstr(const uint32_t _uIndex) const;
-    BasicBlock* GetOperandBB(const uint32_t _uIndex) const;
+    Instruction* GetOperandInstr(const InstrId _uIndex) const;
+    BasicBlock* GetOperandBB(const InstrId _uIndex) const;
 
 private:
     // to be called from function
-    Instruction* FunctionParameter(const Instruction* _pType, const uint64_t _uIndex);
-    Instruction* Type(const EType _kType, const uint32_t _uElementBits, const uint32_t _uElementCount, const std::vector<uint64_t>& _SubTypes = {}, const std::vector<Decoration>& _Decorations = {});
+    Instruction* FunctionParameter(const Instruction* _pType, const InstrId _uIndex);
+    Instruction* Type(const EType _kType, const uint32_t _uElementBits, const uint32_t _uElementCount, const std::vector<InstrId>& _SubTypes = {}, const std::vector<Decoration>& _Decorations = {});
 
 private:
-    const uint64_t uIdentifier; // result identifier
+    const InstrId uIdentifier; // result identifier
     BasicBlock* const pParent;
     std::string sAlias;
 
     EInstruction kInstruction = kInstruction_Undefined; // opcode identifier
-    uint64_t uResultTypeId = InvalidId;
+    InstrId uResultTypeId = InvalidId;
     std::vector<Operand> Operands; // operand identifiers
     std::vector<Decoration> Decorations;
 

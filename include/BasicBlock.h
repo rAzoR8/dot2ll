@@ -14,7 +14,7 @@ public:
     using Vec = std::vector<BasicBlock*>;
     using Instructions = std::deque<Instruction>;
 
-    BasicBlock(const uint64_t _uIndentifier, ControlFlowGraph* _pParent, const std::string& _sName) :
+    BasicBlock(const InstrId _uIndentifier, ControlFlowGraph* _pParent, const std::string& _sName) :
         m_uIdentifier(_uIndentifier), m_pParent(_pParent), m_sName(_sName)
     {
     }
@@ -46,13 +46,13 @@ public:
     const bool IsSource() const { return m_bSource; }
     const bool IsSink() const { return m_bSink; }
 
-    const uint64_t& GetIdentifier() const { return m_uIdentifier; }
+    const InstrId& GetIdentifier() const { return m_uIdentifier; }
 
     void SetDivergent(const bool _bDivergent) { m_bDivergent = _bDivergent; }
     const bool IsDivergent() const { return m_bDivergent; }
 
 private:
-    const uint64_t m_uIdentifier;
+    const InstrId m_uIdentifier;
 
     std::string m_sName; // Label
     bool m_bSource = true; // Entry

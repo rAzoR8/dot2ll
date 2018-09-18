@@ -28,7 +28,7 @@ public:
     
     Instruction* Type(const TypeInfo& _Type);
 
-    Instruction* AddParameter(const Instruction* _pType, const uint64_t _uIndex = InvalidId);
+    Instruction* AddParameter(const Instruction* _pType, const InstrId _uIndex = InvalidId);
 
     const ControlFlowGraph& GetCFG() const { return m_CFG; }
     ControlFlowGraph& GetCFG() { return m_CFG; }

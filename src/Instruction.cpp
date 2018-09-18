@@ -82,7 +82,7 @@ const bool Instruction::Is(const EDecoration _kDecoration) const
     return false;
 }
 
-Instruction* Instruction::FunctionParameter(const Instruction* _pType, const uint64_t _uIndex)
+Instruction* Instruction::FunctionParameter(const Instruction* _pType, const InstrId _uIndex)
 {
     CHECK_INSTR;
 
@@ -97,7 +97,7 @@ Instruction* Instruction::FunctionParameter(const Instruction* _pType, const uin
     return nullptr;
 }
 
-Instruction* Instruction::Constant(const Instruction* _pType, const std::vector<uint64_t>& _ConstantData)
+Instruction* Instruction::Constant(const Instruction* _pType, const std::vector<InstrId>& _ConstantData)
 {
     CHECK_INSTR;
 
@@ -117,13 +117,13 @@ Instruction* Instruction::Constant(const Instruction* _pType, const std::vector<
     return this;
 }
 
-Instruction* Instruction::Type(const EType _kType, const uint32_t _uElementBits, const uint32_t _uElementCount, const std::vector<uint64_t>& _SubTypes, const std::vector<Decoration>& _Decorations)
+Instruction* Instruction::Type(const EType _kType, const uint32_t _uElementBits, const uint32_t _uElementCount, const std::vector<InstrId>& _SubTypes, const std::vector<Decoration>& _Decorations)
 {
     CHECK_INSTR;
 
     kInstruction = kInstruction_Type;
 
-    Operands.emplace_back(kOperandType_Constant, static_cast<uint64_t>(_kType));
+    Operands.emplace_back(kOperandType_Constant, static_cast<InstrId>(_kType));
 
     switch (_kType)
     {
@@ -134,18 +134,18 @@ Instruction* Instruction::Type(const EType _kType, const uint32_t _uElementBits,
     case kType_Int:
     case kType_UInt:
     case kType_Float:
-        Operands.emplace_back(kOperandType_Constant, static_cast<uint64_t>(_uElementBits));
-        Operands.emplace_back(kOperandType_Constant, static_cast<uint64_t>(_uElementCount));
+        Operands.emplace_back(kOperandType_Constant, static_cast<InstrId>(_uElementBits));
+        Operands.emplace_back(kOperandType_Constant, static_cast<InstrId>(_uElementCount));
         break;
     case kType_Pointer:
         Operands.emplace_back(kOperandType_InstructionId, _SubTypes.front());
         break;
     case kType_Array:
-        Operands.emplace_back(kOperandType_Constant, static_cast<uint64_t>(_uElementCount));
+        Operands.emplace_back(kOperandType_Constant, static_cast<InstrId>(_uElementCount));
         Operands.emplace_back(kOperandType_InstructionId, _SubTypes.front());
         break;
     case kType_Struct:
-        for (const uint64_t& type : _SubTypes)
+        for (const InstrId& type : _SubTypes)
         {
             Operands.emplace_back(kOperandType_InstructionId, type);
         }
@@ -159,7 +159,7 @@ Instruction* Instruction::Type(const EType _kType, const uint32_t _uElementBits,
     return this;
 }
 
-Instruction* Instruction::GetOperandInstr(const uint32_t _uIndex) const
+Instruction* Instruction::GetOperandInstr(const InstrId _uIndex) const
 {
     if (_uIndex < Operands.size() && Operands[_uIndex].kType == kOperandType_InstructionId)
     {
@@ -169,7 +169,7 @@ Instruction* Instruction::GetOperandInstr(const uint32_t _uIndex) const
     return nullptr;
 }
 
-BasicBlock* Instruction::GetOperandBB(const uint32_t _uIndex) const
+BasicBlock* Instruction::GetOperandBB(const InstrId _uIndex) const
 {
     if (_uIndex < Operands.size() && Operands[_uIndex].kType == kOperandType_BasicBlockId)
     {

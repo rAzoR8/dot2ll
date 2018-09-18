@@ -1,23 +1,35 @@
 #include "ControlFlowGraph.h"
 
-BasicBlock* ControlFlowGraph::AddNode(const std::string& _sName)
+BasicBlock* ControlFlowGraph::FindNode(const std::string& _sName)
 {
-    return AddNode(hlx::Hash(_sName), _sName);
-}
-
-BasicBlock* ControlFlowGraph::AddNode(const uint64_t _uHash, const std::string& _sName)
-{
-    if (auto it = m_NodeIdentifierMap.find(_uHash); it != m_NodeIdentifierMap.end())
+    if (auto it = m_NodeIdentifierMap.find(hlx::Hash(_sName)); it != m_NodeIdentifierMap.end())
     {
         return &m_Nodes[it->second];
     }
 
-    const size_t uIndex = m_Nodes.size();
-    m_NodeIdentifierMap[_uHash] = uIndex;
-    return &m_Nodes.emplace_back(uIndex, this, _sName.empty() ? "BB_" + std::to_string(uIndex) : _sName);
+    return nullptr;
 }
 
-TypeInfo ControlFlowGraph::ResolveType(const uint64_t _uTypeId) const
+const BasicBlock* ControlFlowGraph::FindNode(const std::string& _sName) const
+{
+    if (auto it = m_NodeIdentifierMap.find(hlx::Hash(_sName)); it != m_NodeIdentifierMap.end())
+    {
+        return &m_Nodes[it->second];
+    }
+
+    return nullptr;
+}
+
+BasicBlock* ControlFlowGraph::NewNode(const std::string& _sName)
+{
+    const InstrId uIndex = static_cast<InstrId>(m_Nodes.size());
+    const std::string sName = _sName.empty() ? "BB_" + std::to_string(uIndex) : _sName;
+    m_NodeIdentifierMap[hlx::Hash(sName)] = uIndex;
+
+    return &m_Nodes.emplace_back(uIndex, this, sName);
+}
+
+TypeInfo ControlFlowGraph::ResolveType(const InstrId _uTypeId) const
 {
     return ResolveType(GetInstruction(_uTypeId));
 }
@@ -61,14 +73,4 @@ TypeInfo ControlFlowGraph::ResolveType(const Instruction* _pType) const
     }
 
     return Info;
-}
-
-//Instruction* ControlFlowGraph::GetInstruction(const uint64_t _uId)
-//{
-//    return _uId < m_Instructions.size() ? m_Instructions[_uId] : nullptr;
-//}
-
-Instruction* ControlFlowGraph::GetInstruction(const uint64_t _uId) const
-{
-    return _uId < m_Instructions.size() ? m_Instructions[_uId] : nullptr;
 }

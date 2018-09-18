@@ -2,7 +2,7 @@
 
 Function::Function(const std::string& _sName, const CallingConvention _CallConv) :
     m_sName(_sName),
-    m_pEntryBlock(m_CFG.AddNode(m_sName + "_ENTRYPOINT")),
+    m_pEntryBlock(m_CFG.NewNode(m_sName + "_ENTRYPOINT")),
     m_CallConv(_CallConv)
 {
 }
@@ -18,7 +18,7 @@ Instruction* Function::Type(const TypeInfo& _Type)
 
     Instruction* pInstr = m_pEntryBlock->AddInstruction();
 
-    std::vector<uint64_t> SubTypes;
+    std::vector<InstrId> SubTypes;
 
     for (const TypeInfo& type : _Type.SubTypes)
     {
@@ -54,10 +54,10 @@ Instruction* Function::Type(const TypeInfo& _Type)
     return pInstr;
 }
 
-Instruction* Function::AddParameter(const Instruction* _pType, const uint64_t _uIndex)
+Instruction* Function::AddParameter(const Instruction* _pType, const InstrId _uIndex)
 {
     Instruction* pParam = m_pEntryBlock->AddInstruction();
-    pParam->FunctionParameter(_pType, _uIndex == InvalidId ? m_Parameters.size() : _uIndex);
+    pParam->FunctionParameter(_pType, _uIndex == InvalidId ? static_cast<InstrId>(m_Parameters.size()) : _uIndex);
     m_Parameters.push_back(pParam);
 
     return pParam;
@@ -68,7 +68,7 @@ void Function::Finalize()
 {
     if (m_pExitBlock == nullptr)
     {
-        m_pExitBlock = m_CFG.AddNode(m_sName + "_EXITPOINT");
+        m_pExitBlock = m_CFG.NewNode(m_sName + "_EXITPOINT");
     }
 
     // find the source and from the entry block
