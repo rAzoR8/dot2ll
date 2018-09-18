@@ -40,14 +40,20 @@ class OpenSubTreeUnion
 public:
     OpenSubTreeUnion(const std::vector<OpenTreeNode*> _Roots);
 
-    const std::unordered_set<OpenTreeNode*>& GetNodes() const { return m_Nodes; }
+    struct OTNHash
+    {
+        size_t operator()(const OpenTreeNode* _pNode) const { return _pNode->pBB->GetIdentifier(); }
+    };
+
+    const std::unordered_set<OpenTreeNode*, OTNHash>& GetNodes() const { return m_Nodes; }
     const std::unordered_set<OpenTreeNode*>& GetRoots() const { return m_Roots; }
 
     const bool HasOutgoingNotLeadingTo(BasicBlock* _pBB) const;
     const bool HasMultiRootsOrOutgoing() const;
 
 private:
-    std::unordered_set<OpenTreeNode*> m_Nodes;
+    // order of nodes does not depend on memory address
+    std::unordered_set<OpenTreeNode*, OTNHash> m_Nodes;
     std::unordered_set<OpenTreeNode*> m_Roots;
 };
 
