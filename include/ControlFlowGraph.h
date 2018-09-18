@@ -17,14 +17,13 @@ public:
     ControlFlowGraph(ControlFlowGraph&& _Other) :
         m_Nodes(std::move(_Other.m_Nodes)),
         m_Instructions(std::move(_Other.m_Instructions)),
-        m_NodeMap(std::move(_Other.m_NodeMap)) {}
+        m_NodeIdentifierMap(std::move(_Other.m_NodeIdentifierMap)) {}
 
     ~ControlFlowGraph() {};
 
     // use name hash as identifier
     BasicBlock* AddNode(const std::string& _sName);
-    BasicBlock* AddNode(const uint64_t uIdentifier, const std::string& _sName = {});
-    BasicBlock* GetNode(const uint64_t uIdentifier) const;
+    BasicBlock* AddNode(const uint64_t _uHash, const std::string& _sName = {});
 
     const Nodes& GetNodes() const { return m_Nodes; }
     Nodes& GetNodes() { return m_Nodes; }
@@ -41,9 +40,14 @@ public:
     //Instruction* GetInstruction(const uint64_t _uId);
     Instruction* GetInstruction(const uint64_t _uId) const;
 
+    BasicBlock* GetNode(const uint64_t _uId) { return _uId < m_Nodes.size() ? &m_Nodes[_uId] : nullptr; };
+    const BasicBlock* GetNode(const uint64_t _uId) const { return _uId < m_Nodes.size() ? &m_Nodes[_uId] : nullptr; };
+
 private:
     Nodes m_Nodes;
 
     std::vector<Instruction*> m_Instructions;
-    std::unordered_map<uint64_t, BasicBlock*> m_NodeMap;
+    // hash -> index into nodes
+    std::unordered_map<uint64_t, uint64_t> m_NodeIdentifierMap;
+    //std::unordered_map<uint64_t, BasicBlock*> m_NodeMap;
 };
