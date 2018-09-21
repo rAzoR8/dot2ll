@@ -21,7 +21,11 @@ public:
         m_pReturnType(_Other.m_pReturnType),
         m_Types(std::move(_Other.m_Types)),
         m_CallConv(std::move(_Other.m_CallConv))
-    {    
+    {
+        for (BasicBlock& BB : m_CFG)
+        {
+            BB.m_pParent = &m_CFG;
+        }
     }
 
     ~Function() {};
@@ -47,10 +51,13 @@ public:
     void SetCallingConvention(const CallingConvention& _CallConv) { m_CallConv = _CallConv; }
     const CallingConvention& GetCallingConvention() const { return m_CallConv; }
 
+    BasicBlock* GetEntryBlock() const { return m_pEntryBlock; }
+    BasicBlock* GetExitBlock() const { return m_pExitBlock; }
+
 private:
     const std::string m_sName;
     ControlFlowGraph m_CFG;
-    BasicBlock* const m_pEntryBlock;
+    BasicBlock* m_pEntryBlock = nullptr;
     BasicBlock* m_pExitBlock = nullptr;
 
     std::vector<Instruction*> m_Parameters;

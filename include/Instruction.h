@@ -57,11 +57,11 @@ private:
     Instruction* Type(const EType _kType, const uint32_t _uElementBits, const uint32_t _uElementCount, const std::vector<InstrId>& _SubTypes = {}, const std::vector<Decoration>& _Decorations = {});
 
 private:
+    EInstruction kInstruction = kInstruction_Undefined; // opcode identifier
     const InstrId uIdentifier; // result identifier
     BasicBlock* const pParent;
     std::string sAlias;
 
-    EInstruction kInstruction = kInstruction_Undefined; // opcode identifier
     InstrId uResultTypeId = InvalidId;
     std::vector<Operand> Operands; // operand identifiers
     std::vector<Decoration> Decorations;

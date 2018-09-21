@@ -109,7 +109,7 @@ Instruction* Instruction::Constant(const Instruction* _pType, const std::vector<
     kInstruction = kInstruction_Constant;
     uResultTypeId = _pType->uIdentifier;
 
-    for (const uint64_t& data : _ConstantData)
+    for (const InstrId& data : _ConstantData)
     {
         Operands.emplace_back(kOperandType_Constant, data);
     }
@@ -198,6 +198,8 @@ Instruction* Instruction::Reset()
     case kInstruction_Branch: // fall through
         remove(pParent->m_Successors[0]->m_Predecessors, pParent);
         pParent->m_Successors.clear();
+    case kInstruction_Return: // fall through
+        pParent->m_pTerminator = nullptr;
     default:
         break;
     }    

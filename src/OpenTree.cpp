@@ -7,6 +7,8 @@ void OpenTree::Process(const NodeOrder& _Ordering)
 
     Prepare(Ordering);
 
+    std::vector<OpenTreeNode*> OutFlowNodes;
+
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
@@ -24,7 +26,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
             if (S.HasOutgoingNotLeadingTo(B))
             {
-                Reroute(S);
+                Reroute(S, OutFlowNodes); // flow block is added to OT before B... problematic?
             }
         }
 
@@ -44,10 +46,12 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
             if (S.HasMultiRootsOrOutgoing())
             {
-                Reroute(S);
+                Reroute(S, OutFlowNodes);
             }
         }
     }
+
+    // TODO: fix flow nodes OutFlowNodes
 }
 
 void OpenTree::Prepare(NodeOrder& _Ordering)
@@ -57,6 +61,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
     // reserve enough space for root & flow blocks
     m_Nodes.reserve(_Ordering.size() * 2u);
     m_pRoot = &m_Nodes.emplace_back();
+    m_pRoot->sName = "ROOT";
 
     for (BasicBlock* B : _Ordering)
     {
@@ -93,63 +98,74 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     pNode->pParent = InterleavePathsToBB(_pBB);
     pNode->pParent->Children.push_back(pNode);
 
-    // close edge from BB to Pred
+    // close edge from Pred to BB
     // is this the right point to close the edge?
     // this changes the visited preds, so after interleaving makes sense
     for (BasicBlock* pPred : Preds)
     {
-        m_BBToNode[pPred]->Close(pPred);
+        m_BBToNode[pPred]->Close(_pBB);
     }
 
     pNode->bVisited = true;
 }
 
-void OpenTree::Reroute(const OpenSubTreeUnion& _Subtree)
+void OpenTree::Reroute(OpenSubTreeUnion& _Subtree, std::vector<OpenTreeNode*>& _OutFlowNodes)
 {
     BasicBlock* pFlow = (*_Subtree.GetNodes().begin())->pBB->GetCFG()->NewNode("FLOW" + std::to_string(m_uNumFlowBlocks++));
     OpenTreeNode* pFlowNode = &m_Nodes.emplace_back(pFlow);
+    pFlowNode->bFlow = true;
     m_BBToNode[pFlow] = pFlowNode;
     
+    _OutFlowNodes.push_back(pFlowNode);
+
     for (OpenTreeNode* pNode : _Subtree.GetNodes())
     {
         if (pNode->Outgoing.empty())
             continue;
 
-        Instruction* pTerminator = pNode->pBB->GetTerminator();        
-
-        if (pNode->Outgoing.size() == 1u)
+        if (pNode->bFlow)
         {
-            pTerminator->Reset()->Branch(pFlow);
-            
+        
+        }
+
+        Instruction* pTerminator = pNode->pBB->GetTerminator();        
+        Instruction* pCondition = pTerminator->GetOperandInstr(0u);
+        BasicBlock* pTrueSucc = pTerminator->GetOperandBB(1u);
+        BasicBlock* pFalseSucc = pTerminator->GetOperandBB(2u);
+
+        pTerminator->Reset()->Branch(pFlow);
+
+        // TODO: check if outgoing (successor) is unvisited (LLVM code does so)
+        if (pNode->Outgoing.size() == 1u)
+        {            
             if (pFlow->GetTerminator() == nullptr)
             {
+                // TODO: add conditon instr (can be nopped later)
                 pFlow->AddInstruction()->Branch(pNode->Outgoing[0]);
             }
 
-            pFlowNode->Incoming.push_back(pNode->Outgoing[0]);
+            pFlowNode->Outgoing.push_back(pNode->Outgoing[0]);
         }
         else if (pNode->Outgoing.size() == 2u)
         {
-            Instruction* pCondition = pTerminator->GetOperandInstr(0u);
-
-            pTerminator->Reset()->Branch(pFlow);
-
             if (pFlow->GetTerminator() == nullptr)
             {
                 pFlow->AddInstruction()->BranchCond(pCondition, pNode->Outgoing[0], pNode->Outgoing[1]);
             }
 
-            pFlowNode->Incoming.push_back(pNode->Outgoing[0]);
-            pFlowNode->Incoming.push_back(pNode->Outgoing[1]);
+            pFlowNode->Outgoing.push_back(pNode->Outgoing[0]);
+            pFlowNode->Outgoing.push_back(pNode->Outgoing[1]);
         }
         else
         {
-            // TODO: 
+            // TODO: Add flow node to subtree an call reroute again until subtree does not change anymore
         }
-
+        
+        pFlowNode->Incoming.push_back(pNode->pBB);
         pNode->Outgoing = { pFlow };      
     }
 
+    // add node to OT
     AddNode(pFlow);
 }
 
@@ -179,7 +195,6 @@ OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
         }
         else
         {
-
             // TODO: check if the node is an ancestor
             for (OpenTreeNode* pChild : pBranch->Children)
             {
@@ -213,19 +228,6 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
 {
     std::unordered_set<OpenTreeNode*> Ancestors;
 
-    const auto IsAncestorOf = [](OpenTreeNode* pAncestor, OpenTreeNode* pNode) -> bool
-    {
-        while (pNode != nullptr)
-        {
-            if (pAncestor == pNode->pParent)
-                return true;
-
-            pNode = pNode->pParent;
-        }
-
-        return false;
-    };
-
     std::deque<OpenTreeNode*> Nodes;
 
     auto VisitedPreds = FilterNodes(_pBB->GetPredecessors(), Visited);
@@ -246,7 +248,7 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
         // check if this ancestor is an ancestor of all predecessors
         for (OpenTreeNode* pPred : VisitedPreds)
         {
-            bIsCommanAncestor &= IsAncestorOf(pAncestor, pPred);
+            bIsCommanAncestor &= pAncestor->AncestorOf(pPred);
         }
 
         if (bIsCommanAncestor)
@@ -264,6 +266,20 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
     // todo: select lowest common ancestor?
 
     return m_pRoot;
+}
+
+bool OpenTreeNode::AncestorOf(const OpenTreeNode* _pSuccessor) const
+{
+    const OpenTreeNode* pNode = _pSuccessor;
+    while (pNode != nullptr)
+    {
+        if (this == pNode->pParent)
+            return true;
+
+        pNode = pNode->pParent;
+    }
+
+    return false;
 }
 
 void OpenTreeNode::Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed)
@@ -293,7 +309,7 @@ void OpenTreeNode::Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed)
     }
 };
 
-OpenSubTreeUnion::OpenSubTreeUnion(const std::vector<OpenTreeNode*> _Roots)
+OpenSubTreeUnion::OpenSubTreeUnion(const std::vector<OpenTreeNode*>& _Roots)
 {
     for (OpenTreeNode* pRoot : _Roots)
     {
@@ -349,16 +365,24 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
     if (m_Roots.size() > 1u)
         return true;
 
-    OpenTreeNode* pOpenOutgoing = nullptr;
+    BasicBlock* pFirstOut = nullptr;
     for (OpenTreeNode* pNode : m_Nodes)
     {
-        if (pOpenOutgoing == nullptr)
+        if (pFirstOut == nullptr)
         {
-            pOpenOutgoing = pNode;
+            if (pNode->Outgoing.empty() == false)
+            {
+                pFirstOut = pNode->Outgoing[0];
+            }
         }
-        else if (pOpenOutgoing != pNode)
+
+        if (pFirstOut != nullptr)
         {
-            return true;
+            for (BasicBlock* pOut : pNode->Outgoing)
+            {
+                if (pFirstOut != pOut)
+                    return true;
+            }
         }
     }
 

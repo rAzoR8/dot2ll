@@ -13,7 +13,7 @@ public:
     InstructionSetLLVMAMD() {};
     ~InstructionSetLLVMAMD() {};
 
-    std::string ResolveTypeName(const Function& _Function, const uint64_t _uTypeId);
+    std::string ResolveTypeName(const Function& _Function, const InstrId _uTypeId);
     std::string ResolveTypeName(const TypeInfo& _Type) final;
 
     std::string ResolveConstant(const Function& _Function, const Instruction& _Instruction) final;

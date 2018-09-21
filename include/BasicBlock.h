@@ -62,7 +62,7 @@ private:
     Instructions m_Instructions;
     Vec m_Successors;
     Vec m_Predecessors;
-    ControlFlowGraph* const m_pParent;
+    ControlFlowGraph* /*const*/ m_pParent;
 
     Instruction* m_pTerminator = nullptr;
 };

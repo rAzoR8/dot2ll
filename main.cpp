@@ -1,5 +1,6 @@
 #include "DotParser.h"
 #include "Dot2CFG.h"
+#include "OpenTree.h"
 #include "InstructionSetLLVMAMD.h"
 
 int main(int argc, char* argv[])
@@ -17,6 +18,12 @@ int main(int argc, char* argv[])
         if (ll.is_open())
         {
             Function func = Dot2CFG::Convert(dotgraph);
+
+            NodeOrder InputOrdering = NodeOrdering::ComputeDepthFirst(func.GetEntryBlock());
+
+            // reconverge using InputOrdering
+            OpenTree OT;
+            OT.Process(InputOrdering);
 
             InstructionSetLLVMAMD isa;
             isa.SerializeListing(func, ll);

@@ -1,7 +1,7 @@
 #include "InstructionSetLLVMAMD.h"
 
 
-std::string InstructionSetLLVMAMD::ResolveTypeName(const Function& _Function, const uint64_t _uTypeId)
+std::string InstructionSetLLVMAMD::ResolveTypeName(const Function& _Function, const InstrId _uTypeId)
 {
     return ResolveTypeName(_Function.GetCFG().ResolveType(_Function.GetCFG().GetInstruction(_uTypeId)));
 }

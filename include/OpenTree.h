@@ -12,6 +12,7 @@ struct OpenTreeNode
     {
         if (_pBB != nullptr)
         {
+            sName = _pBB->GetName();
             Incoming = _pBB->GetPredecessors();
             Outgoing = _pBB->GetSuccesors();
         }
@@ -21,14 +22,18 @@ struct OpenTreeNode
     bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
     bool Visited() const { return bVisited; }
     bool InOT() const { return pParent != nullptr; }
+    bool AncestorOf(const OpenTreeNode* _pSuccessor) const;
 
     void Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed = false);
+
+    std::string sName;
 
     std::vector<OpenTreeNode*> Children;
 
     OpenTreeNode* pParent = nullptr;
     BasicBlock* pBB = nullptr;
     bool bVisited = false;
+    bool bFlow = false; // is a flowblock
 
     // open edges
     BasicBlock::Vec Incoming;
@@ -38,7 +43,7 @@ struct OpenTreeNode
 class OpenSubTreeUnion
 {
 public:
-    OpenSubTreeUnion(const std::vector<OpenTreeNode*> _Roots);
+    OpenSubTreeUnion(const std::vector<OpenTreeNode*>& _Roots);
 
     struct OTNHash
     {
@@ -73,7 +78,7 @@ private:
 
     void AddNode(BasicBlock* _pBB);
 
-    void Reroute(const OpenSubTreeUnion& _Subtree);
+    void Reroute(OpenSubTreeUnion& _Subtree, std::vector<OpenTreeNode*>& _OutFlowNodes);
 
     // return lowest ancestor of BB
     OpenTreeNode* InterleavePathsToBB(BasicBlock* _pBB);

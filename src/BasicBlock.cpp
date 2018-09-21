@@ -19,18 +19,19 @@ BasicBlock::BasicBlock(BasicBlock && _Other) :
     _Other.m_bSink = true;
     _Other.m_bDivergent = false;
     _Other.m_pTerminator = nullptr;
+    //_Other.m_pParent = nullptr;
 }
 
 Instruction* BasicBlock::AddInstruction()
 {
-    Instruction* pInstr = &m_Instructions.emplace_back(m_pParent->m_Instructions.size(), this);
+    Instruction* pInstr = &m_Instructions.emplace_back(static_cast<InstrId>(m_pParent->m_Instructions.size()), this);
     m_pParent->m_Instructions.push_back(pInstr);
     return pInstr;
 }
 
 Instruction* BasicBlock::AddInstructionFront()
 {
-    Instruction* pInstr = &m_Instructions.emplace_front(m_pParent->m_Instructions.size(), this);
+    Instruction* pInstr = &m_Instructions.emplace_front(static_cast<InstrId>(m_pParent->m_Instructions.size()), this);
     m_pParent->m_Instructions.push_back(pInstr);
     return pInstr;
 }
