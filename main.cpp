@@ -1,5 +1,7 @@
 #include "DotParser.h"
+#include "DotWriter.h"
 #include "Dot2CFG.h"
+#include "CFG2Dot.h"
 #include "OpenTree.h"
 #include "InstructionSetLLVMAMD.h"
 
@@ -7,24 +9,40 @@ int main(int argc, char* argv[])
 {
     if (argc < 2)
         return 1;
+    
+    const bool bReconv = argc > 2 && std::string(argv[2]) == "-r";
 
-    DotGraph dotgraph = DotParser::ParseFromFile(argv[1]);
+    DotGraph dotin = DotParser::ParseFromFile(argv[1]);
 
-    if (dotgraph.GetNodes().empty() == false)
+    if (dotin.GetNodes().empty() == false)
     {
-        const std::string sOutLL = dotgraph.GetName() + ".ll";
-        std::ofstream ll(argc > 2 ? argv[2] : sOutLL.c_str());
+        Function func = Dot2CFG::Convert(dotin);
 
-        if (ll.is_open())
+        const std::string sOutLL = dotin.GetName() + ".ll";
+
+        if (bReconv)
         {
-            Function func = Dot2CFG::Convert(dotgraph);
-
             NodeOrder InputOrdering = NodeOrdering::ComputeDepthFirst(func.GetEntryBlock());
-
+        
             // reconverge using InputOrdering
             OpenTree OT;
             OT.Process(InputOrdering);
 
+            const std::string sOutDot = dotin.GetName() + "_reconv.dot";
+            std::ofstream dotout(sOutDot);
+
+            if (dotout.is_open())
+            {
+                DotWriter::WriteToStream(CFG2Dot::Convert(func.GetCFG(), func.GetName()), dotout);
+
+                dotout.close();
+            }
+        }
+
+        std::ofstream ll(sOutLL.c_str());
+
+        if (ll.is_open())
+        {
             InstructionSetLLVMAMD isa;
             isa.SerializeListing(func, ll);
 

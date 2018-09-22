@@ -36,6 +36,7 @@ enum EInstruction : uint32_t
     kInstruction_Return,
     kInstruction_Branch,
     kInstruction_BranchCond,
+    kInstruction_Phi,
     kInstruction_Equal,
     kInstruction_NotEqual,
     kInstruction_Less,

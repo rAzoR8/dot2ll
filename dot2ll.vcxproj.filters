@@ -95,5 +95,11 @@
     <ClInclude Include="include\NodeOrdering.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\CFG2Dot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dotparse\include\DotWriter.h">
+      <Filter>Header Files\DotParser</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

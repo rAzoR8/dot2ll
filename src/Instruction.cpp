@@ -279,3 +279,33 @@ Instruction* Instruction::BranchCond(const Instruction* _pCondtion, BasicBlock* 
 
     return nullptr;
 }
+
+Instruction* Instruction::Phi(const std::vector<Instruction*>& _Values, const std::vector<BasicBlock*> _Origins)
+{
+    CHECK_INSTR;
+
+    if (_Values.empty() || _Values.size() != _Origins.size()) 
+    {
+        return nullptr;
+    }
+
+    kInstruction = kInstruction_Phi;
+    uResultTypeId = _Values.front()->uResultTypeId;
+    // number of args
+    Operands.emplace_back(kOperandType_Constant, static_cast<InstrId>(_Values.size()));
+    for (Instruction* pValue : _Values)
+    {
+        Operands.emplace_back(kOperandType_InstructionId, pValue->uIdentifier);
+        if (pValue->uResultTypeId != uResultTypeId)
+        {
+            return nullptr;
+        }
+    }
+
+    for (BasicBlock* pBB : _Origins)
+    {
+        Operands.emplace_back(kOperandType_BasicBlockId, pBB->GetIdentifier());
+    }
+
+    return this;
+}

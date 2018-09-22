@@ -46,6 +46,8 @@ public:
     Instruction* Branch(BasicBlock* _pTarget);
     Instruction* BranchCond(const Instruction* _pCondtion, BasicBlock* _pTrueTarget, BasicBlock* _pFalseTarget);
 
+    Instruction* Phi(const std::vector<Instruction*>& _Value, const std::vector<BasicBlock*> _Origin);
+
     Instruction* Reset();
 
     Instruction* GetOperandInstr(const InstrId _uIndex) const;

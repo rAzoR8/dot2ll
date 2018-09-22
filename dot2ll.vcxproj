@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{A939656E-ECBB-4CC4-BCD2-E8C845D2FDA5}</ProjectGuid>
     <RootNamespace>dot2ll</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -141,7 +141,9 @@
     <ClInclude Include="..\dotparse\include\DotGraph.h" />
     <ClInclude Include="..\dotparse\include\DotNode.h" />
     <ClInclude Include="..\dotparse\include\DotParser.h" />
+    <ClInclude Include="..\dotparse\include\DotWriter.h" />
     <ClInclude Include="include\BasicBlock.h" />
+    <ClInclude Include="include\CFG2Dot.h" />
     <ClInclude Include="include\CFGUtils.h" />
     <ClInclude Include="include\ControlFlowGraph.h" />
     <ClInclude Include="include\DominatorTree.h" />
