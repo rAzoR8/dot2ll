@@ -26,7 +26,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
             if (S.HasOutgoingNotLeadingTo(B))
             {
-                Reroute(S, OutFlowNodes); // flow block is added to OT before B... problematic?
+                OutFlowNodes.push_back(Reroute(S)); // flow block is added to OT before B... problematic?
             }
         }
 
@@ -46,7 +46,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
             if (S.HasMultiRootsOrOutgoing())
             {
-                Reroute(S, OutFlowNodes);
+                OutFlowNodes.push_back(Reroute(S));
             }
         }
     }
@@ -109,57 +109,53 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     pNode->bVisited = true;
 }
 
-void OpenTree::Reroute(OpenSubTreeUnion& _Subtree, std::vector<OpenTreeNode*>& _OutFlowNodes)
+OpenTreeNode* OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 {
     BasicBlock* pFlow = (*_Subtree.GetNodes().begin())->pBB->GetCFG()->NewNode("FLOW" + std::to_string(m_uNumFlowBlocks++));
     OpenTreeNode* pFlowNode = &m_Nodes.emplace_back(pFlow);
     pFlowNode->bFlow = true;
     m_BBToNode[pFlow] = pFlowNode;
     
-    _OutFlowNodes.push_back(pFlowNode);
-
     for (OpenTreeNode* pNode : _Subtree.GetNodes())
     {
-        if (pNode->Outgoing.empty())
+        if (pNode->Outgoing.empty() || pNode->bFlow)
             continue;
 
-        if (pNode->bFlow)
-        {
-        
-        }
+        Instruction* pTerminator = pNode->pBB->GetTerminator();
 
-        Instruction* pTerminator = pNode->pBB->GetTerminator();        
         Instruction* pCondition = pTerminator->GetOperandInstr(0u);
-        BasicBlock* pTrueSucc = pTerminator->GetOperandBB(1u);
-        BasicBlock* pFalseSucc = pTerminator->GetOperandBB(2u);
+        BasicBlock* pTrueSucc = nullptr;
+        BasicBlock* pFalseSucc = nullptr;
+
+        if (pTerminator->Is(kInstruction_Branch))
+        {
+            pTrueSucc = pTerminator->GetOperandBB(0u);
+        }
+        else if (pTerminator->Is(kInstruction_BranchCond))
+        {
+            pTrueSucc = pTerminator->GetOperandBB(1u);
+            pFalseSucc = pTerminator->GetOperandBB(2u);
+        }
 
         pTerminator->Reset()->Branch(pFlow);
 
         // TODO: check if outgoing (successor) is unvisited (LLVM code does so)
-        if (pNode->Outgoing.size() == 1u)
-        {            
-            if (pFlow->GetTerminator() == nullptr)
-            {
-                // TODO: add conditon instr (can be nopped later)
-                pFlow->AddInstruction()->Branch(pNode->Outgoing[0]);
-            }
-
-            pFlowNode->Outgoing.push_back(pNode->Outgoing[0]);
-        }
-        else if (pNode->Outgoing.size() == 2u)
+        if (pNode->Outgoing.size() <= 2u)
         {
-            if (pFlow->GetTerminator() == nullptr)
-            {
-                pFlow->AddInstruction()->BranchCond(pCondition, pNode->Outgoing[0], pNode->Outgoing[1]);
-            }
-
-            pFlowNode->Outgoing.push_back(pNode->Outgoing[0]);
-            pFlowNode->Outgoing.push_back(pNode->Outgoing[1]);
+            HASSERT(Contains(pNode->Outgoing, pTrueSucc) || Contains(pNode->Outgoing, pFalseSucc), "Outgoing BB does not match branch successor");
         }
         else
         {
-            // TODO: Add flow node to subtree an call reroute again until subtree does not change anymore
+            HFATAL("Too many outgoing edges");
         }
+
+        // TODO: check if the edge Flow -> out already exisits
+
+        // 1-to-1 association between OutgoingFlow and Incoming (open edges):
+        OpenTreeNode::Flow& Flow = pFlowNode->OutgoingFlow.emplace_back();
+        Flow.pCondition = pCondition;
+        Flow.pTrueSucc = pTrueSucc;
+        Flow.pFalseSucc = pFalseSucc;
         
         pFlowNode->Incoming.push_back(pNode->pBB);
         pNode->Outgoing = { pFlow };      
@@ -167,6 +163,14 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree, std::vector<OpenTreeNode*>& _
 
     // add node to OT
     AddNode(pFlow);
+
+    //if (pFlow->GetTerminator() == nullptr)
+    //{
+    //    // TODO: add conditon instr (can be nopped later)
+    //    pFlow->AddInstruction()->Branch(pTarget);
+    //}
+
+    return pFlowNode;
 }
 
 // interleaves all node paths up until _pBB, returns last leave node (new ancestor)

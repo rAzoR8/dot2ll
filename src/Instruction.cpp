@@ -39,7 +39,7 @@ void Instruction::StringDecoration(const std::string& _sName)
     uint32_t i = 0;
     for (const char& c : _sName)
     {
-        if (i++ % 4 == 0)
+        if (i++ % sizeof(uint32_t) == 0)
         {
             pChar = reinterpret_cast<char*>(&Decorations.emplace_back(kDecoration_String, 0u).uUserData);
         }
@@ -306,6 +306,20 @@ Instruction* Instruction::Phi(const std::vector<Instruction*>& _Values, const st
     {
         Operands.emplace_back(kOperandType_BasicBlockId, pBB->GetIdentifier());
     }
+
+    return this;
+}
+
+Instruction* Instruction::Not(Instruction* _pValue)
+{
+    CHECK_INSTR;
+
+    if(_pValue == nullptr)
+       return nullptr;
+
+    kInstruction = kInstruction_Not;
+    Operands.emplace_back(kOperandType_InstructionId, _pValue->uIdentifier);
+    uResultTypeId = _pValue->uResultTypeId;
 
     return this;
 }

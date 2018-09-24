@@ -2,6 +2,7 @@
 
 Function::Function(const std::string& _sName, const CallingConvention _CallConv) :
     m_sName(_sName),
+    m_CFG(this),
     m_CallConv(_CallConv)
 {
     m_pEntryBlock = m_CFG.NewNode(m_sName + "_ENTRYPOINT");

@@ -26,6 +26,7 @@ public:
         {
             BB.m_pParent = &m_CFG;
         }
+        m_CFG.m_pFunction = this;
     }
 
     ~Function() {};
@@ -33,6 +34,12 @@ public:
     Instruction* Type(const TypeInfo& _Type);
 
     Instruction* AddParameter(const Instruction* _pType, const InstrId _uIndex = InvalidId);
+
+    template <class T>
+    Instruction* Type();
+
+    template <class T>
+    Instruction* Constant(const T& _Const);
 
     const ControlFlowGraph& GetCFG() const { return m_CFG; }
     ControlFlowGraph& GetCFG() { return m_CFG; }
@@ -63,8 +70,50 @@ private:
     std::vector<Instruction*> m_Parameters;
     Instruction* m_pReturnType = nullptr;
 
-    // type hash -> instruction id
+    // type hash -> instruction
     std::unordered_map<uint64_t, Instruction*> m_Types;
+
+    // type hash -> instruction
+    std::unordered_map<uint64_t, Instruction*> m_Constants;
 
     CallingConvention m_CallConv;
 };
+
+template<class T>
+inline Instruction* Function::Type()
+{
+    return Type(TypeInfo::From<T>());
+}
+
+template<class T>
+inline Instruction* Function::Constant(const T& _Const)
+{
+    const TypeInfo TInfo(TypeInfo::From<T>());
+    const uint64_t uHash = hlx::CombineHashes(TInfo.ComputeHash(), hlx::Hash(_Const));
+
+    if (auto it = m_Constants.find(uHash); it != m_Constants.end())
+    {
+        return it->second;
+    }
+
+    const uint8_t* pData = reinterpret_cast<const uint8_t*>(&_Const);
+
+    std::vector<InstrId> ConstData;
+    for (size_t i = 0u; i < sizeof(T); ++i) 
+    {
+        if (i >= ConstData.size() * sizeof(InstrId))
+        {
+            ConstData.emplace_back();
+        }
+
+        reinterpret_cast<uint8_t*>(ConstData.data())[i] = pData[i];
+    }
+
+    Instruction* pType = Type(TInfo);
+    Instruction* pConst = m_pEntryBlock->AddInstruction()->Constant(pType, ConstData);
+
+    m_Constants[uHash] = pConst;
+
+    return pConst;
+}
+

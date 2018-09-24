@@ -48,7 +48,8 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sUn
 
         if (pTrueSucc != nullptr && pFalseSucc != nullptr)
         {
-            Instruction* pType = func.Type(TypeInfo(kType_Int));
+            Instruction* pConstNull = func.Constant(0u);
+            Instruction* pType = cfg.GetInstruction(pConstNull->GetResultTypeId());
 
             Instruction* pParam = func.AddParameter(pType);
             pParam->SetAlias("in_" + pNode->GetName());
@@ -58,7 +59,6 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sUn
                 pParam->Decorate({ kDecoration_Divergent });
             }
 
-            Instruction* pConstNull = pNode->AddInstruction()->Constant(pType, { 0u });
             Instruction* pCondition = pNode->AddInstruction()->Equal(pParam, pConstNull);
             pCondition->SetAlias("cc_" + pNode->GetName());
 

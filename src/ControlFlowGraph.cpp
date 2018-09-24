@@ -1,4 +1,11 @@
 #include "ControlFlowGraph.h"
+#include "Function.h"
+
+ControlFlowGraph::ControlFlowGraph(Function* _pParent, const size_t _uMaxNodes) :
+    m_pFunction(_pParent)
+{
+    m_Nodes.reserve(_uMaxNodes);
+};
 
 BasicBlock* ControlFlowGraph::FindNode(const std::string& _sName)
 {

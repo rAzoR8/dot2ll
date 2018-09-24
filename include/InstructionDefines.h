@@ -37,6 +37,7 @@ enum EInstruction : uint32_t
     kInstruction_Branch,
     kInstruction_BranchCond,
     kInstruction_Phi,
+    kInstruction_Not,
     kInstruction_Equal,
     kInstruction_NotEqual,
     kInstruction_Less,
@@ -120,4 +121,49 @@ struct TypeInfo
 
         return uHash;
     }
+
+    template <class T>
+    static TypeInfo From();
 };
+
+template<>
+inline TypeInfo TypeInfo::From<bool>()
+{
+    return TypeInfo(kType_Bool, 1u, 1u);
+}
+
+template<>
+inline TypeInfo TypeInfo::From<int32_t>()
+{
+    return TypeInfo(kType_Int, 32u, 1u);
+}
+
+template<>
+inline TypeInfo TypeInfo::From<uint32_t>()
+{
+    return TypeInfo(kType_UInt, 32u, 1u);
+}
+
+template<>
+inline TypeInfo TypeInfo::From<int64_t>()
+{
+    return TypeInfo(kType_Int, 64u, 1u);
+}
+
+template<>
+inline TypeInfo TypeInfo::From<uint64_t>()
+{
+    return TypeInfo(kType_UInt, 64u, 1u);
+}
+
+template<>
+inline TypeInfo TypeInfo::From<float>()
+{
+    return TypeInfo(kType_Float, 32u, 1u);
+}
+
+template<>
+inline TypeInfo TypeInfo::From<double>()
+{
+    return TypeInfo(kType_Float, 64u, 1u);
+}

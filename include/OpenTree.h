@@ -7,7 +7,7 @@
 
 struct OpenTreeNode
 {
-    OpenTreeNode(BasicBlock* _pBB = nullptr) : 
+    OpenTreeNode(BasicBlock* _pBB = nullptr) :
         pBB(_pBB)
     {
         if (_pBB != nullptr)
@@ -38,6 +38,16 @@ struct OpenTreeNode
     // open edges
     BasicBlock::Vec Incoming;
     BasicBlock::Vec Outgoing;
+
+    struct Flow
+    {
+        Instruction* pCondition = nullptr; // can be null for uncond branches
+        BasicBlock* pTrueSucc = nullptr;
+        BasicBlock* pFalseSucc = nullptr;
+    };
+
+    // for flow blocks only
+    std::vector<Flow> OutgoingFlow;
 };
 
 class OpenSubTreeUnion
@@ -78,7 +88,7 @@ private:
 
     void AddNode(BasicBlock* _pBB);
 
-    void Reroute(OpenSubTreeUnion& _Subtree, std::vector<OpenTreeNode*>& _OutFlowNodes);
+    OpenTreeNode* Reroute(OpenSubTreeUnion& _Subtree);
 
     // return lowest ancestor of BB
     OpenTreeNode* InterleavePathsToBB(BasicBlock* _pBB);

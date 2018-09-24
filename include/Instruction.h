@@ -1,6 +1,8 @@
 #pragma once
 
 #include "InstructionDefines.h"
+#include "hlx/include/Logger.h"
+#undef S
 
 class Instruction
 {
@@ -22,6 +24,7 @@ public:
     const std::vector<Decoration> GetDecorations() const { return Decorations; }
 
     const bool Is(const EDecoration _kDecoration) const;
+    const bool Is(const EInstruction _kInstr) const { return kInstruction == _kInstr; };
 
     const EInstruction GetInstruction() const { return kInstruction; }
     const InstrId& GetIdentifier() const { return uIdentifier; }
@@ -38,8 +41,6 @@ public:
     void StringDecoration(const std::string& _sString);
     std::string GetStringDecoration() const;
 
-    Instruction* Constant(const Instruction* _pType, const std::vector<InstrId>& _ConstantData);
-
     Instruction* Equal(const Instruction* _pLeft, const Instruction* _pRight);
 
     Instruction* Return(const Instruction* _pResult = nullptr);
@@ -47,6 +48,8 @@ public:
     Instruction* BranchCond(const Instruction* _pCondtion, BasicBlock* _pTrueTarget, BasicBlock* _pFalseTarget);
 
     Instruction* Phi(const std::vector<Instruction*>& _Value, const std::vector<BasicBlock*> _Origin);
+
+    Instruction* Not(Instruction* _pValue);
 
     Instruction* Reset();
 
@@ -57,6 +60,7 @@ private:
     // to be called from function
     Instruction* FunctionParameter(const Instruction* _pType, const InstrId _uIndex);
     Instruction* Type(const EType _kType, const uint32_t _uElementBits, const uint32_t _uElementCount, const std::vector<InstrId>& _SubTypes = {}, const std::vector<Decoration>& _Decorations = {});
+    Instruction* Constant(const Instruction* _pType, const std::vector<InstrId>& _ConstantData);
 
 private:
     EInstruction kInstruction = kInstruction_Undefined; // opcode identifier
