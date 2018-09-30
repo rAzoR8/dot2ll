@@ -14,7 +14,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     {
         // LLVM code ignores virtual nodes for rerouting, why?
 
-        // Let P be the set of armed predecessors of B
+        // Let P be the set of armed predecessors of B (non-uniform node with 1 open edge)
         std::vector<OpenTreeNode*> P = FilterNodes(B->GetPredecessors(), Armed);
 
         // If P is non-empty
@@ -103,7 +103,13 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     // this changes the visited preds, so after interleaving makes sense
     for (BasicBlock* pPred : Preds)
     {
-        m_BBToNode[pPred]->Close(_pBB);
+        OpenTreeNode* pPredNode = m_BBToNode[pPred];
+        pPredNode->Close(_pBB);
+
+        if (pPredNode->pFirstClosedSuccessor == nullptr)
+        {
+            pPredNode->pFirstClosedSuccessor = pNode;
+        }
     }
 
     pNode->bVisited = true;
@@ -118,47 +124,65 @@ OpenTreeNode* OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
     
     for (OpenTreeNode* pNode : _Subtree.GetNodes())
     {
-        if (pNode->Outgoing.empty() || pNode->bFlow)
-            continue;
-
-        Instruction* pTerminator = pNode->pBB->GetTerminator();
-
-        Instruction* pCondition = pTerminator->GetOperandInstr(0u);
-        BasicBlock* pTrueSucc = nullptr;
-        BasicBlock* pFalseSucc = nullptr;
-
-        if (pTerminator->Is(kInstruction_Branch))
+        // pNode is (becomes) a predecessor of pFlow
+        if (pNode->bFlow) // pNode is a flow node itself
         {
-            pTrueSucc = pTerminator->GetOperandBB(0u);
+            // We need to split pNodes outgoing successors into 2 groups:
+            // one that branches to the new pFlow block, and a original successor
+
+
         }
-        else if (pTerminator->Is(kInstruction_BranchCond))
+        else if(pNode->Outgoing.empty() == false)
         {
-            pTrueSucc = pTerminator->GetOperandBB(1u);
-            pFalseSucc = pTerminator->GetOperandBB(2u);
+            // Regular nodes can only have up to 2 open outgoing nodes (because the ISA only has cond-branch, no switch)
+            HASSERT(pNode->Outgoing.size() <= 2u, "Too many open outgoing edges");
+
+            Instruction* pTerminator = pNode->pBB->GetTerminator();
+
+            Instruction* pCondition = pTerminator->GetOperandInstr(0u); // nullptr if unconditional
+            BasicBlock* pTrueSucc = nullptr;
+            BasicBlock* pFalseSucc = nullptr;
+
+            if (pTerminator->Is(kInstruction_Branch))
+            {
+                pTrueSucc = pTerminator->GetOperandBB(0u);
+                HASSERT(pNode->Outgoing.size() == 1u && pNode->Outgoing[0] == pTrueSucc, "Open outgoin does not match branch successor");
+            }
+            else if (pTerminator->Is(kInstruction_BranchCond))
+            {
+                HASSERT(Contains(pNode->Outgoing, pTrueSucc) || Contains(pNode->Outgoing, pFalseSucc), "Outgoing BB does not match branch successor");
+
+                pTrueSucc = pTerminator->GetOperandBB(1u);
+                pFalseSucc = pTerminator->GetOperandBB(2u);
+
+                // What is the case where the branch is conditional, but one open outgoing edge has been closed?
+                // Armed only if the branch is also non-uniform
+
+                if (pNode->Outgoing.size() == 1u)
+                {
+                    HLOG("Outgoing %s", WCSTR(pNode->Outgoing[0]->GetName().c_str()));
+                }
+            }
+
+            // 1-to-1 association between OutgoingFlow and Incoming (open edges):
+            OpenTreeNode::Flow& Flow = pFlowNode->OutgoingFlow.emplace_back();
+            Flow.pSource = pNode;
+            Flow.pCondition = pCondition; // if condition is nullptr -> unconditional branch (const true condition) -> FalseSucc = nullptr
+            Flow.pTrueSucc = pTrueSucc;
+            Flow.pFalseSucc = pFalseSucc;
+
+            // reroute all outgoing edges to FlowBlock (convertes cond branch to branch)
+            // LLVM code only does this if 2 outgoing edges were rerouted (i guess that the unconditional branch is simply reused/repurposed)
+            pTerminator->Reset()->Branch(pFlow); // Branch from pNode to pFlow
+
+            // TODO: check if outgoing (successor) is unvisited (LLVM code does so)
+
+            // TODO: check if the edge Flow -> out already exisits
+
+            // TODO: maybe put pNode into OpenTreeNode::Flow struct instead of Incoming open edges?
+            //pFlowNode->Incoming.push_back(pNode->pBB);
+            pNode->Outgoing = { pFlow }; // is this really an 'open' edge? 
         }
-
-        pTerminator->Reset()->Branch(pFlow);
-
-        // TODO: check if outgoing (successor) is unvisited (LLVM code does so)
-        if (pNode->Outgoing.size() <= 2u)
-        {
-            HASSERT(Contains(pNode->Outgoing, pTrueSucc) || Contains(pNode->Outgoing, pFalseSucc), "Outgoing BB does not match branch successor");
-        }
-        else
-        {
-            HFATAL("Too many outgoing edges");
-        }
-
-        // TODO: check if the edge Flow -> out already exisits
-
-        // 1-to-1 association between OutgoingFlow and Incoming (open edges):
-        OpenTreeNode::Flow& Flow = pFlowNode->OutgoingFlow.emplace_back();
-        Flow.pCondition = pCondition;
-        Flow.pTrueSucc = pTrueSucc;
-        Flow.pFalseSucc = pFalseSucc;
-        
-        pFlowNode->Incoming.push_back(pNode->pBB);
-        pNode->Outgoing = { pFlow };      
     }
 
     // add node to OT
@@ -296,7 +320,7 @@ void OpenTreeNode::Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed)
     if (auto it = std::remove(Outgoing.begin(), Outgoing.end(), _OpenEdge); it != Outgoing.end())
     {
         Outgoing.erase(it);
-    }    
+    }
 
     if (_bRemoveClosed && pParent != nullptr && Outgoing.empty() && Incoming.empty())
     {        

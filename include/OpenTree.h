@@ -19,7 +19,7 @@ struct OpenTreeNode
     }
 
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
-    bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
+    bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && (Outgoing.size() == 1u || OutgoingFlow.size() == 1u); }
     bool Visited() const { return bVisited; }
     bool InOT() const { return pParent != nullptr; }
     bool AncestorOf(const OpenTreeNode* _pSuccessor) const;
@@ -41,6 +41,7 @@ struct OpenTreeNode
 
     struct Flow
     {
+        OpenTreeNode* pSource = nullptr; // Original Source S -> Flow -> (True/False)
         Instruction* pCondition = nullptr; // can be null for uncond branches
         BasicBlock* pTrueSucc = nullptr;
         BasicBlock* pFalseSucc = nullptr;
@@ -48,6 +49,7 @@ struct OpenTreeNode
 
     // for flow blocks only
     std::vector<Flow> OutgoingFlow;
+    OpenTreeNode* pFirstClosedSuccessor = nullptr; // used only for flow blocks
 };
 
 class OpenSubTreeUnion
