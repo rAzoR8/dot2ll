@@ -104,7 +104,7 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     for (BasicBlock* pPred : Preds)
     {
         OpenTreeNode* pPredNode = m_BBToNode[pPred];
-        pPredNode->Close(_pBB);
+        pPredNode->Close(pNode);
 
         if (pPredNode->pFirstClosedSuccessor == nullptr)
         {
@@ -130,69 +130,30 @@ OpenTreeNode* OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             // We need to split pNodes outgoing successors into 2 groups:
             // one that branches to the new pFlow block, and a original successor
 
-
         }
         else if(pNode->Outgoing.empty() == false)
         {
             // Regular nodes can only have up to 2 open outgoing nodes (because the ISA only has cond-branch, no switch)
-            HASSERT(pNode->Outgoing.size() <= 2u, "Too many open outgoing edges");
+            HASSERT(pNode->Outgoing.size() <= 2u, "Too many open outgoing edges");            
 
-            Instruction* pTerminator = pNode->pBB->GetTerminator();
-
-            Instruction* pCondition = pTerminator->GetOperandInstr(0u); // nullptr if unconditional
-            BasicBlock* pTrueSucc = nullptr;
-            BasicBlock* pFalseSucc = nullptr;
-
-            if (pTerminator->Is(kInstruction_Branch))
-            {
-                pTrueSucc = pTerminator->GetOperandBB(0u);
-                HASSERT(pNode->Outgoing.size() == 1u && pNode->Outgoing[0] == pTrueSucc, "Open outgoin does not match branch successor");
-            }
-            else if (pTerminator->Is(kInstruction_BranchCond))
-            {
-                HASSERT(Contains(pNode->Outgoing, pTrueSucc) || Contains(pNode->Outgoing, pFalseSucc), "Outgoing BB does not match branch successor");
-
-                pTrueSucc = pTerminator->GetOperandBB(1u);
-                pFalseSucc = pTerminator->GetOperandBB(2u);
-
-                // What is the case where the branch is conditional, but one open outgoing edge has been closed?
-                // Armed only if the branch is also non-uniform
-
-                if (pNode->Outgoing.size() == 1u)
-                {
-                    HLOG("Outgoing %s", WCSTR(pNode->Outgoing[0]->GetName().c_str()));
-                }
-            }
-
-            // 1-to-1 association between OutgoingFlow and Incoming (open edges):
-            OpenTreeNode::Flow& Flow = pFlowNode->OutgoingFlow.emplace_back();
-            Flow.pSource = pNode;
-            Flow.pCondition = pCondition; // if condition is nullptr -> unconditional branch (const true condition) -> FalseSucc = nullptr
-            Flow.pTrueSucc = pTrueSucc;
-            Flow.pFalseSucc = pFalseSucc;
+            // ADD the outgoing flow from pBB to pFlow
+            pFlowNode->GetOutgoingFlowFromBB(pFlowNode->Outgoing, pNode->pBB);
 
             // reroute all outgoing edges to FlowBlock (convertes cond branch to branch)
             // LLVM code only does this if 2 outgoing edges were rerouted (i guess that the unconditional branch is simply reused/repurposed)
-            pTerminator->Reset()->Branch(pFlow); // Branch from pNode to pFlow
+            pNode->pBB->GetTerminator()->Reset()->Branch(pFlow); // Branch from pNode to pFlow
 
             // TODO: check if outgoing (successor) is unvisited (LLVM code does so)
 
-            // TODO: check if the edge Flow -> out already exisits
+            pNode->Outgoing.clear();
 
-            // TODO: maybe put pNode into OpenTreeNode::Flow struct instead of Incoming open edges?
-            //pFlowNode->Incoming.push_back(pNode->pBB);
-            pNode->Outgoing = { pFlow }; // is this really an 'open' edge? 
+            // SET outgoing flow pBB -> pFlow (uncond branch)
+            pNode->GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB);
         }
     }
 
     // add node to OT
     AddNode(pFlow);
-
-    //if (pFlow->GetTerminator() == nullptr)
-    //{
-    //    // TODO: add conditon instr (can be nopped later)
-    //    pFlow->AddInstruction()->Branch(pTarget);
-    //}
 
     return pFlowNode;
 }
@@ -296,6 +257,17 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
     return m_pRoot;
 }
 
+OpenTreeNode::OpenTreeNode(BasicBlock* _pBB) :
+    pBB(_pBB)
+{
+    if (_pBB != nullptr)
+    {
+        sName = _pBB->GetName();
+        Incoming = _pBB->GetPredecessors();
+        GetOutgoingFlowFromBB(Outgoing, _pBB);
+    }
+}
+
 bool OpenTreeNode::AncestorOf(const OpenTreeNode* _pSuccessor) const
 {
     const OpenTreeNode* pNode = _pSuccessor;
@@ -310,32 +282,75 @@ bool OpenTreeNode::AncestorOf(const OpenTreeNode* _pSuccessor) const
     return false;
 }
 
-void OpenTreeNode::Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed)
+void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
 {
-    if (auto it = std::remove(Incoming.begin(), Incoming.end(), _OpenEdge); it != Incoming.end())
-    {
-        Incoming.erase(it);
-    }
-
-    if (auto it = std::remove(Outgoing.begin(), Outgoing.end(), _OpenEdge); it != Outgoing.end())
+    // this is the predecessor node, remove the successor
+    if (auto it = std::remove_if(Outgoing.begin(), Outgoing.end(), [&](const Flow& _Flow) -> bool {return _Flow.pTarget == _pSuccessor->pBB; }); it != Outgoing.end())
     {
         Outgoing.erase(it);
+    }
+
+    // remove the predecessor from the successors incoming 
+    if (auto it = std::remove(_pSuccessor->Incoming.begin(), _pSuccessor->Incoming.end(), pBB); it != _pSuccessor->Incoming.end())
+    {
+        _pSuccessor->Incoming.erase(it);
     }
 
     if (_bRemoveClosed && pParent != nullptr && Outgoing.empty() && Incoming.empty())
     {        
         // move this nodes children to the parent
-        for (OpenTreeNode* pChild : Children)
-        {
-            pParent->Children.push_back(pChild);
-            pParent->Outgoing.push_back(pChild->pBB); // is this correct?
-            pChild->pParent = pParent;
-        }
+        //for (OpenTreeNode* pChild : Children)
+        //{
+        //    pParent->Children.push_back(pChild);
+        //    pParent->Outgoing.push_back(pChild->pBB); // is this correct?
+        //    pChild->pParent = pParent;
+        //}
 
         // close outgoing edge to this node
         //pParent->Close(pBB, _bRemoveClosed);
     }
-};
+}
+
+void OpenTreeNode::GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock* _pSource)
+{
+    Instruction* pTerminator = _pSource->GetTerminator();
+
+    if (pTerminator == nullptr || _pSource->GetSuccesors().empty())
+    {
+        return;    
+    }
+
+    // TODO: check if the edge Flow -> out already exisits ?
+
+    if (pTerminator->Is(kInstruction_Branch))
+    {
+        Flow& TrueFlow = _OutFlow.emplace_back();
+        TrueFlow.pSource = _pSource;
+        TrueFlow.pCondition = nullptr;
+        TrueFlow.pTarget = pTerminator->GetOperandBB(1u);
+    }
+    else if (pTerminator->Is(kInstruction_BranchCond))
+    {
+        Flow& TrueFlow = _OutFlow.emplace_back();
+        TrueFlow.pSource = _pSource;
+        TrueFlow.pCondition = pTerminator->GetOperandInstr(0u);
+        TrueFlow.pTarget = pTerminator->GetOperandBB(1u);
+
+        Flow& FalseFlow = _OutFlow.emplace_back();
+        FalseFlow.pSource = _pSource;
+        FalseFlow.pCondition = TrueFlow.pCondition; // same condition instr
+        FalseFlow.pTarget = pTerminator->GetOperandBB(2u); // false branch target
+        FalseFlow.bNot = true; // negate condition
+
+        // What is the case where the branch is conditional, but one open outgoing edge has been closed?
+        // Armed only if the branch is also non-uniform
+
+        //if (pNode->Outgoing.size() == 1u)
+        //{
+        //    HLOG("Outgoing %s", WCSTR(pNode->Outgoing[0]->GetName().c_str()));
+        //}
+    }
+}
 
 OpenSubTreeUnion::OpenSubTreeUnion(const std::vector<OpenTreeNode*>& _Roots)
 {
@@ -375,17 +390,16 @@ const bool OpenSubTreeUnion::HasOutgoingNotLeadingTo(BasicBlock* _pBB) const
 {
     for (OpenTreeNode* pNode : m_Nodes)
     {
-        if (pNode->Outgoing.empty() == false)
+        for (OpenTreeNode::Flow& Out : pNode->Outgoing)
         {
-            // outgoing has no open edge to B
-            if (std::find(pNode->Outgoing.begin(), pNode->Outgoing.end(), _pBB) != pNode->Outgoing.end())
+            if (Out.pTarget == _pBB)
             {
-                return true;
+                return false; // there is outgoing flow leading to B
             }
         }
     }
 
-    return false;
+    return true;
 }
 
 const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
@@ -400,15 +414,15 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
         {
             if (pNode->Outgoing.empty() == false)
             {
-                pFirstOut = pNode->Outgoing[0];
+                pFirstOut = pNode->Outgoing[0].pTarget;
             }
         }
 
         if (pFirstOut != nullptr)
         {
-            for (BasicBlock* pOut : pNode->Outgoing)
+            for (const OpenTreeNode::Flow& Out : pNode->Outgoing)
             {
-                if (pFirstOut != pOut)
+                if (pFirstOut != Out.pTarget)
                     return true;
             }
         }

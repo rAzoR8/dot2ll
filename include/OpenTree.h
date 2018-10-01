@@ -7,24 +7,16 @@
 
 struct OpenTreeNode
 {
-    OpenTreeNode(BasicBlock* _pBB = nullptr) :
-        pBB(_pBB)
-    {
-        if (_pBB != nullptr)
-        {
-            sName = _pBB->GetName();
-            Incoming = _pBB->GetPredecessors();
-            Outgoing = _pBB->GetSuccesors();
-        }
-    }
+    OpenTreeNode(BasicBlock* _pBB = nullptr);
 
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
-    bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && (Outgoing.size() == 1u || OutgoingFlow.size() == 1u); }
+    bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
     bool Visited() const { return bVisited; }
     bool InOT() const { return pParent != nullptr; }
     bool AncestorOf(const OpenTreeNode* _pSuccessor) const;
 
-    void Close(BasicBlock* _OpenEdge, const bool _bRemoveClosed = false);
+    // called on predecesssor to close Pred->Succ
+    void Close(OpenTreeNode* _Successor, const bool _bRemoveClosed = false);
 
     std::string sName;
 
@@ -35,20 +27,22 @@ struct OpenTreeNode
     bool bVisited = false;
     bool bFlow = false; // is a flowblock
 
-    // open edges
-    BasicBlock::Vec Incoming;
-    BasicBlock::Vec Outgoing;
-
     struct Flow
     {
-        OpenTreeNode* pSource = nullptr; // Original Source S -> Flow -> (True/False)
+        BasicBlock* pSource = nullptr; // Original Source S -> Flow -> (True/False)
         Instruction* pCondition = nullptr; // can be null for uncond branches
-        BasicBlock* pTrueSucc = nullptr;
-        BasicBlock* pFalseSucc = nullptr;
+        BasicBlock* pTarget = nullptr;
+        bool bNot = false; // negated conditon
     };
 
+    static void GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock* _pSource);
+
+    // open edges
+    BasicBlock::Vec Incoming;
+    std::vector<Flow> Outgoing;
+
     // for flow blocks only
-    std::vector<Flow> OutgoingFlow;
+    //std::vector<Flow> OutgoingFlow;
     OpenTreeNode* pFirstClosedSuccessor = nullptr; // used only for flow blocks
 };
 
