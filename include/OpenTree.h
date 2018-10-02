@@ -84,7 +84,7 @@ private:
 
     void AddNode(BasicBlock* _pBB);
 
-    OpenTreeNode* Reroute(OpenSubTreeUnion& _Subtree);
+    void Reroute(OpenSubTreeUnion& _Subtree);
 
     // return lowest ancestor of BB
     OpenTreeNode* InterleavePathsToBB(BasicBlock* _pBB);
