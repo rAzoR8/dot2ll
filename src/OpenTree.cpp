@@ -10,11 +10,12 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
+        OpenTreeNode* pNode = GetNode(B);
         // LLVM code ignores virtual nodes for rerouting, why?
 
         // Let P be the set of armed predecessors of B (non-uniform node with 1 open edge)
         // TODO: Predecessors are actually the FlowIncoming
-        std::vector<OpenTreeNode*> P = FilterNodes(B->GetPredecessors(), Armed);
+        std::vector<OpenTreeNode*> P = FilterNodes(pNode->Incoming, Armed, *this);
 
         // If P is non-empty
         if (P.empty() == false)
@@ -35,7 +36,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
         // TODO: successors are actually the FlowOutgoing of B (open)
-        std::vector<OpenTreeNode*> N = FilterNodes(B->GetSuccesors(), Visited);
+        std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, Visited, *this);
 
         // If N is non-empty
         if (N.empty() == false)
@@ -50,6 +51,16 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             }
         }
     }
+}
+
+OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
+{
+    if (auto it = m_BBToNode.find(_pBB); it != m_BBToNode.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
 }
 
 void OpenTree::Prepare(NodeOrder& _Ordering)
@@ -72,7 +83,7 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     OpenTreeNode* pNode = m_BBToNode[_pBB];
 
     // TODO: in LLVM the predecessors are actually the open incoming edges from Flow nodes.
-    const BasicBlock::Vec& Preds = _pBB->GetPredecessors();
+    const auto& Preds = pNode->Incoming;
 
     // TODO: LLVM code checks for VISITED preds! node can only be attached to a visited ancestor!
 
@@ -245,7 +256,7 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
 
     std::deque<OpenTreeNode*> Nodes;
 
-    auto VisitedPreds = FilterNodes(_pBB->GetPredecessors(), Visited);
+    auto VisitedPreds = FilterNodes(GetNode(_pBB)->Incoming /*_pBB->GetPredecessors()*/, Visited, *this);
 
     // find shared ancestor in visited predecessors
     for (OpenTreeNode* pVA : VisitedPreds)

@@ -80,6 +80,8 @@ public:
     void Process(const NodeOrder& _Ordering);
 
 private:
+    OpenTreeNode* GetNode(BasicBlock* _pBB) const;
+
     void Prepare(NodeOrder& _Ordering);
 
     void AddNode(BasicBlock* _pBB);
@@ -91,8 +93,12 @@ private:
 
     OpenTreeNode* CommonAncestor(BasicBlock* _pBB) const;
 
-    template <class Filter>
-    std::vector<OpenTreeNode*> FilterNodes(const std::vector<BasicBlock*>& _BBs, const Filter& _Filter) const;
+    template <class Container, class Filter, class Accessor> // Accessor extracts the OT node from the Container element, Filter processes the OT node and returns true or false
+    std::vector<OpenTreeNode*> FilterNodes(const Container& _Container, const Filter& _Filter, const Accessor& _Accessor) const;
+
+    // accessors for FilterNodes()
+    OpenTreeNode* operator()(BasicBlock* _pBB) const { return GetNode(_pBB); }
+    OpenTreeNode* operator()(const OpenTreeNode::Flow& _Flow) const { return GetNode(_Flow.pTarget); }
 
 private:
     uint32_t m_uNumFlowBlocks = 0u;
@@ -101,19 +107,16 @@ private:
     std::unordered_map<BasicBlock*, OpenTreeNode*> m_BBToNode;
 };
 
-template<class Filter>
-inline std::vector<OpenTreeNode*> OpenTree::FilterNodes(const std::vector<BasicBlock*>& _BBs, const Filter & _Filter) const
+template<class Container, class Filter, class Accessor>
+inline std::vector<OpenTreeNode*> OpenTree::FilterNodes(const Container& _Container, const Filter& _Filter, const Accessor& _Accessor) const
 {
     std::vector<OpenTreeNode*> Nodes;
 
-    for (BasicBlock* pBB : _BBs)
+    for (const auto& Elem : _Container)
     {
-        if (auto it = m_BBToNode.find(pBB); it != m_BBToNode.end())
+        if (OpenTreeNode* pNode = _Accessor(Elem); pNode != nullptr && _Filter(pNode))
         {
-            if (_Filter(it->second))
-            {
-                Nodes.push_back(it->second);
-            }
+            Nodes.push_back(pNode);
         }
     }
 
