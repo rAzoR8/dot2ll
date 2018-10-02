@@ -113,7 +113,7 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     pNode->pParent->Children.push_back(pNode);
 
     // close edge from Pred to BB
-    // is this the right point to close the edge?
+    // is this the right point to close the edge? LLVM code closes edges after adding for Predecessors and then for Successors.
     // this changes the visited preds, so after interleaving makes sense
     for (BasicBlock* pPred : Preds)
     {
@@ -403,7 +403,9 @@ void OpenTreeNode::GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock
         return;    
     }
 
-    // TODO: check if the edge Flow -> out already exisits ?
+    // TODO: LLVM code checks if the target Node is unvisited
+
+    // TODO: check if the edge Flow -> out already exisits?
 
     if (pTerminator->Is(kInstruction_Branch))
     {
@@ -493,6 +495,14 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
     BasicBlock* pFirstOut = nullptr;
     for (OpenTreeNode* pNode : m_Nodes)
     {
+        // LLVM code checks for UNVISITED pNode->Visited() == false, why?
+        // because visited also means the node has been rerouted eventually?
+
+        if (pNode->Visited())
+        {
+            continue;
+        }
+
         if (pFirstOut == nullptr)
         {
             if (pNode->Outgoing.empty() == false)
