@@ -164,6 +164,36 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             // We need to split pNodes outgoing successors into 2 groups:
             // one that branches to the new pFlow block, and a original successor
 
+            // is it possible that pNode->pFirstClosedSuccessor is null?
+
+            Instruction* pCondition = nullptr;
+            Instruction* pRemainderCond = nullptr;
+            for (auto it = pNode->Outgoing.begin(); it != pNode->Outgoing.end();)
+            {
+                OpenTreeNode::Flow& out = *it;
+
+                if (out.pTarget == pNode->pFirstClosedSuccessor->pBB) 
+                {
+                    Instruction* pNot = pFlow->AddInstruction()->Not(out.pCondition);
+                    if (out.bNot)
+                    {
+                        pRemainderCond = out.pCondition;
+                        pCondition = pNot;
+                    }
+                    else
+                    {
+                        pRemainderCond = pNot;
+                        pCondition = out.pCondition;
+                    }
+                }
+                else
+                {
+                    out.pSource = pNode->pBB;
+                    pFlowNode->Outgoing.push_back(out);
+                }
+
+                it = pNode->Outgoing.erase(it);
+            }
         }
         else // handle outgoing edges for non Flow Nodes
         {
