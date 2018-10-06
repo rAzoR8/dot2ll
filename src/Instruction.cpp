@@ -280,7 +280,7 @@ Instruction* Instruction::BranchCond(const Instruction* _pCondtion, BasicBlock* 
     return nullptr;
 }
 
-Instruction* Instruction::Phi(const std::vector<Instruction*>& _Values, const std::vector<BasicBlock*> _Origins)
+Instruction* Instruction::Phi(const std::vector<Instruction*>& _Values, const std::vector<BasicBlock*>& _Origins)
 {
     CHECK_INSTR;
 

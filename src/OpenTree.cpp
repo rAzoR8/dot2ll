@@ -1,5 +1,6 @@
 #include "OpenTree.h"
 #include "ControlFlowGraph.h"
+#include "Function.h"
 
 void OpenTree::Process(const NodeOrder& _Ordering)
 {
@@ -135,6 +136,9 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
         pPred->Close(_pNode, true);
     }
 
+    // can not close the edges to visited successors here because set N depends on the open edges.
+    // question is if this is actually correct.
+
     _pNode->bVisited = true;
 }
 
@@ -148,6 +152,12 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
     // accumulate all outgoing edges in the new flow node
     for (OpenTreeNode* pNode : _Subtree.GetNodes())
     {
+        if (pNode->Outgoing.empty())
+            continue;
+
+        // this predecessor (pNode) is now an incoming edge to the flow node
+        pFlowNode->Incoming.push_back(pNode);
+
         // pNode is (becomes) a predecessor of pFlow
         if (pNode->bFlow) // pNode is a flow node itself
         {
@@ -155,7 +165,7 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             // one that branches to the new pFlow block, and a original successor
 
         }
-        else if(pNode->Outgoing.empty() == false)
+        else // handle outgoing edges for non Flow Nodes
         {
             // Regular nodes can only have up to 2 open outgoing nodes (because the ISA only has cond-branch, no switch)
             HASSERT(pNode->Outgoing.size() <= 2u, "Too many open outgoing edges");            
@@ -168,32 +178,46 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             // LLVM code only does this if 2 outgoing edges were rerouted (i guess that the unconditional branch is simply reused/repurposed)
             pNode->pBB->GetTerminator()->Reset()->Branch(pFlow); // Branch from pNode to pFlow
 
-            // this predecessor (pNode) is now an incomping edge to the flow node
-            pFlowNode->Incoming.push_back(pNode);
-
             // SET outgoing flow pBB -> pFlow (uncond branch)
             pNode->Outgoing.clear();
             OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB);
         }
     }
 
-    std::unordered_set<BasicBlock*> SuccTargets;
+    // Successor -> Predecessor (get the predecessor for a certain successor)
+    std::unordered_map<BasicBlock*, std::vector<OpenTreeNode::Flow*>> SuccTargets;
     for (OpenTreeNode::Flow& Succ : pFlowNode->Outgoing)
     {
-        if (SuccTargets.count(Succ.pTarget) != 0u)
-        {
-            continue;
-        }
+        SuccTargets[Succ.pTarget].push_back(&Succ);
+    }
 
-        SuccTargets.insert(Succ.pTarget);
-
-        // go over the unique successors of the flow block
-
+    // go over the unique successors of the flow block
+    for (const auto&[pSucc, Preds] : SuccTargets)
+    {
         // Flow block is the incoming edge to the flow blocks outgoing BB
-        GetNode(Succ.pSource)->Incoming.push_back(pFlowNode);
+        GetNode(pSucc)->Incoming.push_back(pFlowNode);
+
+        std::vector<Instruction*> Values;
+        std::vector<BasicBlock*> Origins;
+        for (OpenTreeNode::Flow* pPred : Preds)
+        {
+            Instruction* pCond = pPred->pCondition;
+            if (pCond == nullptr) // unconditional
+            {
+                pCond = pFlow->GetCFG()->GetFunction()->Constant(true);
+            }
+            else if(pPred->bNot)
+            {
+                pCond = pFlow->AddInstruction()->Not(pCond);
+            }
+
+            Values.push_back(pCond);
+            Origins.push_back(pPred->pSource);
+        }
 
         // LLVM code creates a PHI node for each of the Successors/Targets and adds it to the Flow BB
         // this phi node is the condition from all the Predecessors of the Target
+        pFlow->AddInstruction()->Phi(Values, Origins);
     }
 
     // add node to OT
