@@ -194,6 +194,27 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 
                 it = pNode->Outgoing.erase(it);
             }
+
+            // instead of Close we could create the final branch instruction here aswell?
+
+            if (pCondition != nullptr)
+            {
+                auto& first = pNode->Outgoing.emplace_back();
+                first.pCondition = pCondition;
+                first.pSource = pNode->pBB;
+                first.pTarget = pNode->pFirstClosedSuccessor->pBB;
+            }
+
+            // always route through the new flow block
+            if (pRemainderCond == nullptr) 
+            {
+                pRemainderCond = pFlow->GetCFG()->GetFunction()->Constant(true);
+            }
+
+            auto& remain = pNode->Outgoing.emplace_back();
+            remain.pCondition = pRemainderCond;
+            remain.pSource = pNode->pBB;
+            remain.pTarget = pFlow;
         }
         else // handle outgoing edges for non Flow Nodes
         {
