@@ -49,7 +49,7 @@ public:
     const InstrId& GetIdentifier() const { return m_uIdentifier; }
 
     void SetDivergent(const bool _bDivergent) { m_bDivergent = _bDivergent; }
-    const bool IsDivergent() const { return m_bDivergent; }
+    const bool IsDivergent() const { return m_bDivergent && m_Successors.size() > 1u; }
 
 private:
     const InstrId m_uIdentifier;

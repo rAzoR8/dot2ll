@@ -35,8 +35,14 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         AddNode(pNode);
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
-        // TODO: successors are actually the FlowOutgoing of B (open)
+        // TODO: are successors only the open FlowOutgoing of B or all open outgoing?
         std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, Visited, *this);
+
+        // close B -> visited Succ (needs to be changed if the filter above changes)
+        for (OpenTreeNode* pSucc : N)
+        {
+            pNode->Close(pSucc, true);
+        }
 
         // If N is non-empty
         if (N.empty() == false)
@@ -87,7 +93,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
 
 void OpenTree::AddNode(OpenTreeNode* _pNode)
 {
-    // LLVM code checks for VISITED preds! node can only be attached to a visited ancestor!
+    // LLVM code checks for VISITED preds, node can only be attached to a visited ancestor!
     // in LLVM the predecessors are actually the open incoming edges from FLOW nodes only. (IS THIS CORRECT?)
     const auto& Preds = FilterNodes(_pNode->Incoming, VisitedFlow, *this);
 
@@ -128,9 +134,6 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
 
         pPred->Close(_pNode, true);
     }
-
-    // TODO: close pNode if it has no open edges
-    _pNode->Close(nullptr, true);
 
     _pNode->bVisited = true;
 }
@@ -429,11 +432,6 @@ void OpenTreeNode::GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock
 
         // What is the case where the branch is conditional, but one open outgoing edge has been closed?
         // Armed only if the branch is also non-uniform
-
-        //if (pNode->Outgoing.size() == 1u)
-        //{
-        //    HLOG("Outgoing %s", WCSTR(pNode->Outgoing[0]->GetName().c_str()));
-        //}
     }
 }
 

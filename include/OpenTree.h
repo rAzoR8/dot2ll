@@ -10,9 +10,7 @@ struct OpenTreeNode
     OpenTreeNode(BasicBlock* _pBB = nullptr);
 
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
-    bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
-    //bool Visited() const { return bVisited; }
-    //bool Flow() const { return bFlow; }
+    bool Armed() const { return pBB->IsDivergent() && Outgoing.size() == 1u; }
     bool AncestorOf(const OpenTreeNode* _pSuccessor) const;
 
     // called on predecesssor to close Pred->Succ
