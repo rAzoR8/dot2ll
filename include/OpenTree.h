@@ -11,8 +11,8 @@ struct OpenTreeNode
 
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
     bool Armed() const { return pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u && Outgoing.size() == 1u; }
-    bool Visited() const { return bVisited; }
-    bool InOT() const { return pParent != nullptr; }
+    //bool Visited() const { return bVisited; }
+    //bool Flow() const { return bFlow; }
     bool AncestorOf(const OpenTreeNode* _pSuccessor) const;
 
     // called on predecesssor to close Pred->Succ
@@ -38,7 +38,7 @@ struct OpenTreeNode
     static void GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock* _pSource);
 
     // open edges
-    BasicBlock::Vec Incoming;
+    std::vector<OpenTreeNode*> Incoming;
     std::vector<Flow> Outgoing;
 
     // for flow blocks only
@@ -70,8 +70,12 @@ private:
 
 class OpenTree
 {
-    static bool Armed(const OpenTreeNode* pNode) { return pNode->Armed(); };
-    static bool Visited(const OpenTreeNode* pNode) { return pNode->Visited(); };
+    static bool Armed(const OpenTreeNode* pNode) { return pNode->Armed(); }
+    static bool Visited(const OpenTreeNode* pNode) { return pNode->bVisited; }
+    static bool Flow(const OpenTreeNode* pNode) { return pNode->bFlow; }
+    static bool VisitedFlow(const OpenTreeNode* pNode) { return pNode->bVisited && pNode->bFlow; }
+
+    static bool True(const OpenTreeNode* pNode) { return true; }
 
 public:
     OpenTree() {};
@@ -84,7 +88,7 @@ private:
 
     void Prepare(NodeOrder& _Ordering);
 
-    void AddNode(BasicBlock* _pBB);
+    void AddNode(OpenTreeNode* _pNode);
 
     void Reroute(OpenSubTreeUnion& _Subtree);
 
@@ -98,6 +102,7 @@ private:
 
     // accessors for FilterNodes()
     OpenTreeNode* operator()(BasicBlock* _pBB) const { return GetNode(_pBB); }
+    OpenTreeNode* operator()(OpenTreeNode* _pNode) const { return _pNode; }
     OpenTreeNode* operator()(const OpenTreeNode::Flow& _Flow) const { return GetNode(_Flow.pTarget); }
 
 private:

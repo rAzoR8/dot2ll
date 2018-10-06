@@ -32,7 +32,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
 
         // why add the node after armed predecessors have been defused?
         // => this makes sure B will be the PostDom.
-        AddNode(B);
+        AddNode(pNode);
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
         // TODO: successors are actually the FlowOutgoing of B (open)
@@ -76,32 +76,36 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
     {
         m_BBToNode[B] = &m_Nodes.emplace_back(B);
     }
+
+    // initialize open incoming and outgoing edges
+    for (auto&[pBB, pNode] : m_BBToNode)
+    {
+        pNode->Incoming = FilterNodes(pBB->GetPredecessors(), True, *this);
+        OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pBB);
+    }
 }
 
-void OpenTree::AddNode(BasicBlock* _pBB)
+void OpenTree::AddNode(OpenTreeNode* _pNode)
 {
-    OpenTreeNode* pNode = m_BBToNode[_pBB];
-
-    // TODO: in LLVM the predecessors are actually the open incoming edges from Flow nodes.
-    const auto& Preds = pNode->Incoming;
-
-    // TODO: LLVM code checks for VISITED preds! node can only be attached to a visited ancestor!
+    // LLVM code checks for VISITED preds! node can only be attached to a visited ancestor!
+    // in LLVM the predecessors are actually the open incoming edges from FLOW nodes only. (IS THIS CORRECT?)
+    const auto& Preds = FilterNodes(_pNode->Incoming, VisitedFlow, *this);
 
     if (Preds.size() == 0u)
     {
         // if no predecessor of B is in OT, add B as a child of the root
-        pNode->pParent = m_pRoot;        
+        _pNode->pParent = m_pRoot;
     }
     else if (Preds.size() == 1u)
     {
         // If a predecessor of B is already in OT, find the lowest predecessor(s).
         // If it is unique, add B as a child
 
-        pNode->pParent = m_BBToNode[Preds[0]];
+        _pNode->pParent = Preds[0];
     }
     else
     {
-        pNode->pParent = InterleavePathsToBB(_pBB);
+        _pNode->pParent = InterleavePathsToBB(_pNode->pBB);
     }
 
     // This should handle all cases:
@@ -110,27 +114,25 @@ void OpenTree::AddNode(BasicBlock* _pBB)
     // if no common ancestor is found, root will be returned
     // otherwise the last leave of the merged path is returned
 
-    pNode->pParent->Children.push_back(pNode);
+    _pNode->pParent->Children.push_back(_pNode);
 
     // close edge from Pred to BB
     // is this the right point to close the edge? LLVM code closes edges after adding for Predecessors and then for Successors.
     // this changes the visited preds, so after interleaving makes sense
-    for (BasicBlock* pPred : Preds)
+    for (OpenTreeNode* pPred : Preds)
     {
-        OpenTreeNode* pPredNode = m_BBToNode[pPred];
-
-        if (pPredNode->pFirstClosedSuccessor == nullptr)
+        if (pPred->pFirstClosedSuccessor == nullptr)
         {
-            pPredNode->pFirstClosedSuccessor = pNode;
+            pPred->pFirstClosedSuccessor = _pNode;
         }
 
-        pPredNode->Close(pNode, true);
+        pPred->Close(_pNode, true);
     }
 
     // TODO: close pNode if it has no open edges
-    pNode->Close(nullptr, true);
+    _pNode->Close(nullptr, true);
 
-    pNode->bVisited = true;
+    _pNode->bVisited = true;
 }
 
 void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
@@ -164,7 +166,7 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             pNode->pBB->GetTerminator()->Reset()->Branch(pFlow); // Branch from pNode to pFlow
 
             // this predecessor (pNode) is now an incomping edge to the flow node
-            pFlowNode->Incoming.push_back(pNode->pBB);
+            pFlowNode->Incoming.push_back(pNode);
 
             // SET outgoing flow pBB -> pFlow (uncond branch)
             pNode->Outgoing.clear();
@@ -185,14 +187,14 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         // go over the unique successors of the flow block
 
         // Flow block is the incoming edge to the flow blocks outgoing BB
-        m_BBToNode[Succ.pSource]->Incoming.push_back(pFlow);
+        GetNode(Succ.pSource)->Incoming.push_back(pFlowNode);
 
         // LLVM code creates a PHI node for each of the Successors/Targets and adds it to the Flow BB
         // this phi node is the condition from all the Predecessors of the Target
     }
 
     // add node to OT
-    AddNode(pFlow);
+    AddNode(pFlowNode);
 }
 
 // interleaves all node paths up until _pBB, returns last leave node (new ancestor)
@@ -300,8 +302,6 @@ OpenTreeNode::OpenTreeNode(BasicBlock* _pBB) :
     if (_pBB != nullptr)
     {
         sName = _pBB->GetName();
-        Incoming = _pBB->GetPredecessors();
-        GetOutgoingFlowFromBB(Outgoing, _pBB);
     }
 }
 
@@ -359,7 +359,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         }
 
         // remove the predecessor from the successors incoming 
-        if (auto it = std::remove(_pSuccessor->Incoming.begin(), _pSuccessor->Incoming.end(), pBB); it != _pSuccessor->Incoming.end())
+        if (auto it = std::remove(_pSuccessor->Incoming.begin(), _pSuccessor->Incoming.end(), this); it != _pSuccessor->Incoming.end())
         {
             _pSuccessor->Incoming.erase(it);
         }
@@ -498,7 +498,7 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
         // LLVM code checks for UNVISITED pNode->Visited() == false, why?
         // because visited also means the node has been rerouted eventually?
 
-        if (pNode->Visited())
+        if (pNode->bVisited)
         {
             continue;
         }
