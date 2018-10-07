@@ -1,5 +1,6 @@
 #include "Instruction.h"
 #include "ControlFlowGraph.h"
+#include "Function.h"
 #include <algorithm>
 
 Instruction* Instruction::Nop()
@@ -223,6 +224,7 @@ Instruction* Instruction::Equal(const Instruction* _pLeft, const Instruction* _p
             kInstruction = kInstruction_Equal;
             Operands.emplace_back(kOperandType_InstructionId, _pLeft->uIdentifier);
             Operands.emplace_back(kOperandType_InstructionId, _pRight->uIdentifier);
+            uResultTypeId = pParent->GetCFG()->GetFunction()->Type<bool>()->GetIdentifier();
             return this;
         }
     }

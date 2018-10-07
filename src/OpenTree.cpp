@@ -11,7 +11,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
-        DumpDotToFile("before_" + B->GetName() + ".dot");
+        DumpDotToFile(B->GetName() + "_before.dot");
 
         OpenTreeNode* pNode = GetNode(B);
         // LLVM code ignores virtual nodes for rerouting, why?
@@ -37,7 +37,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         // => this makes sure B will be the PostDom.
         AddNode(pNode);
 
-        DumpDotToFile("after_" + B->GetName() + ".dot");
+        DumpDotToFile(B->GetName() + "_after.dot");
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
         // TODO: are successors only the open FlowOutgoing of B or all open outgoing?

@@ -43,7 +43,7 @@ void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
             // both edges are backwards
             if (pos1 <= pos && pos2 <= pos)
             {
-                BasicBlock* pVirtual = pBB->GetCFG()->NewNode(pBB->GetName() + "_VIRTORDER");
+                BasicBlock* pVirtual = pBB->GetCFG()->NewNode(pBB->GetName() + "_VIRTUAL");
                 Instruction* pTerminator = pBB->GetTerminator(); // this is a BranchCond instr
 
                 // get branch cond info

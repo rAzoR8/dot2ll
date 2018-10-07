@@ -116,7 +116,7 @@ bool InstructionSetLLVMAMD::SerializeInstruction(const Function& _Function, cons
         _OutStream << "\tbr label %" << cfg.GetNode(Operands[0].uId)->GetName() << std::endl;
         break;
     case kInstruction_BranchCond:
-        _OutStream << "\tbr %" << cfg.GetInstruction(Operands[0].uId)->GetAlias();
+        _OutStream << "\tbr " << ResolveTypeName(_Function, cfg.GetInstruction(Operands[0].uId)->GetResultTypeId()) << " %" << cfg.GetInstruction(Operands[0].uId)->GetAlias();
         _OutStream << ", label %" << cfg.GetNode(Operands[1].uId)->GetName();
         _OutStream << ", label %" << cfg.GetNode(Operands[2].uId)->GetName() << std::endl;
         break;
