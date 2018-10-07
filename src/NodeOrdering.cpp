@@ -26,6 +26,65 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
     return Order;
 }
 
+NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
+{
+    NodeOrder Order;
+
+    std::unordered_set<BasicBlock*> traversed;
+    std::list<BasicBlock*> frontier = {_pRoot};
+
+    const auto AncestorsTraversed = [&traversed](BasicBlock* _pBB) -> bool
+    {
+        for (BasicBlock* pAncestor : _pBB->GetPredecessors())
+        {
+            if (pAncestor != _pBB) // ignore loops / backward edges to self
+            {
+                if (traversed.count(pAncestor) == 0) // not traversed yet
+                    return false;
+            }
+        }
+
+        return true;
+    };
+
+    while (frontier.empty() == false)
+    {
+        for (auto it = frontier.begin(); it != frontier.end();)
+        {
+            BasicBlock* pBB = *it;
+
+            if (AncestorsTraversed(pBB))
+            {
+                traversed.insert(pBB);
+                Order.push_back(pBB);
+                it = frontier.erase(it);
+
+                for (BasicBlock* pSuccessor : pBB->GetSuccesors())
+                {
+                    if (pSuccessor != pBB && traversed.count(pSuccessor) == 0 && Contains(frontier, pSuccessor) == false) // ignore backward eges / loops
+                    {
+                        frontier.push_front(pSuccessor);
+                    }
+                }
+            }
+            else
+            {
+                for (BasicBlock* pAncestor : pBB->GetPredecessors())
+                {
+                    if (pAncestor != pBB && traversed.count(pAncestor) == 0 && Contains(frontier, pAncestor) == false)
+                    {
+                        frontier.push_front(pAncestor);
+                    }
+                }
+
+                ++it;
+            }
+        }
+    }
+
+    return Order;
+}
+
 void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront)
 {
     for (auto it = _Order.begin(); it != _Order.end(); ++it)

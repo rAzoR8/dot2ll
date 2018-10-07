@@ -137,8 +137,10 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
     m_pRoot = &m_Nodes.emplace_back();
     m_pRoot->sName = "ROOT";
 
+    HLOG("Node Order:");
     for (BasicBlock* B : _Ordering)
     {
+        HLOG("\t%s", WCSTR(B->GetName()));
         m_BBToNode[B] = &m_Nodes.emplace_back(B);
     }
 
