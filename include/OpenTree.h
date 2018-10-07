@@ -81,6 +81,7 @@ public:
     void Process(const NodeOrder& _Ordering);
 
     void SerializeDotGraph(std::ostream& _Out) const;
+    void DumpDotToFile(const std::string& _sPath) const;
 
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;

@@ -11,6 +11,8 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
+        DumpDotToFile("before_" + B->GetName() + ".dot");
+
         OpenTreeNode* pNode = GetNode(B);
         // LLVM code ignores virtual nodes for rerouting, why?
 
@@ -34,6 +36,8 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         // why add the node after armed predecessors have been defused?
         // => this makes sure B will be the PostDom.
         AddNode(pNode);
+
+        DumpDotToFile("after_" + B->GetName() + ".dot");
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
         // TODO: are successors only the open FlowOutgoing of B or all open outgoing?
@@ -71,10 +75,27 @@ void OpenTree::SerializeDotGraph(std::ostream& _Out) const
         OpenTreeNode* pNode = Nodes.front();
         Nodes.pop_front();
 
+#ifdef OUTGOING
+        if (pNode->Outgoing.empty())
+        {
+            _Out << pNode->sName << ';' << std::endl;
+        }
+
         for (const auto& flow : pNode->Outgoing)
         {
             OpenTreeNode* pSucc = GetNode(flow.pTarget);
-            _Out << pNode->pBB->GetName() << '-' << flow.pTarget->GetName() << "[label=";
+            _Out << pNode->sName << " -- " << flow.pTarget->GetName();
+#else
+        if (pNode->Children.empty())
+        {
+            _Out << pNode->sName << ';' << std::endl;
+        }
+
+        for(OpenTreeNode* pSucc : pNode->Children)
+        {
+            _Out << pNode->sName << " -- " << pSucc->sName;
+#endif
+            _Out << "[label=";
             if (pSucc->bVisited)
             {
                 _Out << "Visited";
@@ -85,6 +106,16 @@ void OpenTree::SerializeDotGraph(std::ostream& _Out) const
     }
 
     _Out << "}" << std::endl;
+}
+
+void OpenTree::DumpDotToFile(const std::string& _sPath) const
+{
+    std::ofstream stream(_sPath);
+    if (stream.is_open())
+    {
+        SerializeDotGraph(stream);
+        stream.close();
+    }
 }
 
 OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
