@@ -96,7 +96,7 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
 {
     // LLVM code checks for VISITED preds, node can only be attached to a visited ancestor!
     // in LLVM the predecessors are actually the open incoming edges from FLOW nodes only. (IS THIS CORRECT?)
-    const auto& Preds = FilterNodes(_pNode->Incoming, VisitedFlow, *this);
+    const auto& Preds = FilterNodes(_pNode->Incoming, Visited, *this); // VisitedFlow ?
 
     if (Preds.size() == 0u)
     {
@@ -117,9 +117,6 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
 
     // This should handle all cases:
     //pNode->pParent = InterleavePathsToBB(_pBB);
-
-    // if no common ancestor is found, root will be returned
-    // otherwise the last leave of the merged path is returned
 
     _pNode->pParent->Children.push_back(_pNode);
 
@@ -454,7 +451,6 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
                 pParent->Children.push_back(pChild);
             }
 
-            //pParent->Outgoing.push_back(pChild->pBB); // is this correct?
             pChild->pParent = pParent;
         }
 
@@ -467,8 +463,10 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
             }
         }
 
+        // this node is removed from the OT, it has no ancestor or successor
         pParent = nullptr;
         Children.clear();
+        bRemoved = true;
     }
 }
 
@@ -490,7 +488,7 @@ void OpenTreeNode::GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock
         Flow& TrueFlow = _OutFlow.emplace_back();
         TrueFlow.pSource = _pSource;
         TrueFlow.pCondition = nullptr;
-        TrueFlow.pTarget = pTerminator->GetOperandBB(1u);
+        TrueFlow.pTarget = pTerminator->GetOperandBB(0u);
     }
     else if (pTerminator->Is(kInstruction_BranchCond))
     {
@@ -501,7 +499,7 @@ void OpenTreeNode::GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock
 
         Flow& FalseFlow = _OutFlow.emplace_back();
         FalseFlow.pSource = _pSource;
-        FalseFlow.pCondition = TrueFlow.pCondition; // same condition instr
+        FalseFlow.pCondition = pTerminator->GetOperandInstr(0u); // same condition instr
         FalseFlow.pTarget = pTerminator->GetOperandBB(2u); // false branch target
         FalseFlow.bNot = true; // negate condition
 

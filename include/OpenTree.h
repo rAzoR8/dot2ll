@@ -22,8 +22,9 @@ struct OpenTreeNode
 
     OpenTreeNode* pParent = nullptr;
     BasicBlock* pBB = nullptr;
-    bool bVisited = false;
+    bool bVisited = false; // has been added to the OT
     bool bFlow = false; // is a flowblock
+    bool bRemoved = false; // for debugging
 
     struct Flow
     {
