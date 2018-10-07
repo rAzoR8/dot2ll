@@ -60,6 +60,34 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     }
 }
 
+std::string OpenTree::GetDotGraph() const
+{
+    std::string sGraph = "graph OT {\n";
+
+    std::deque<OpenTreeNode*> Nodes = { m_pRoot };
+
+    while (Nodes.empty() == false)
+    {
+        OpenTreeNode* pNode = Nodes.front();
+        Nodes.pop_front();
+
+        for (const auto& flow : pNode->Outgoing)
+        {
+            OpenTreeNode* pSucc = GetNode(flow.pTarget);
+            sGraph += pNode->pBB->GetName() + '-' + flow.pTarget->GetName() + "[label=";
+            if (pSucc->bVisited)
+            {
+                sGraph += "Visited";
+            }
+            sGraph += "];\n";
+            Nodes.push_back(pSucc);
+        }
+    }
+
+    sGraph += "}\n";
+    return sGraph;
+}
+
 OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
 {
     if (auto it = m_BBToNode.find(_pBB); it != m_BBToNode.end())

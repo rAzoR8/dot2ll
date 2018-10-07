@@ -82,6 +82,8 @@ public:
 
     void Process(const NodeOrder& _Ordering);
 
+    std::string GetDotGraph() const;
+
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;
 
