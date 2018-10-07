@@ -3,7 +3,6 @@
 #include "NodeOrdering.h"
 #include <unordered_map>
 #include <unordered_set>
-#include <algorithm>
 
 struct OpenTreeNode
 {
@@ -41,7 +40,6 @@ struct OpenTreeNode
     std::vector<Flow> Outgoing;
 
     // for flow blocks only
-    //std::vector<Flow> OutgoingFlow;
     OpenTreeNode* pFirstClosedSuccessor = nullptr; // used only for flow blocks
 };
 
@@ -82,7 +80,7 @@ public:
 
     void Process(const NodeOrder& _Ordering);
 
-    std::string GetDotGraph() const;
+    void SerializeDotGraph(std::ostream& _Out) const;
 
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;

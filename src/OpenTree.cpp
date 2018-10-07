@@ -60,9 +60,9 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     }
 }
 
-std::string OpenTree::GetDotGraph() const
+void OpenTree::SerializeDotGraph(std::ostream& _Out) const
 {
-    std::string sGraph = "graph OT {\n";
+    _Out << "graph OT {\n";
 
     std::deque<OpenTreeNode*> Nodes = { m_pRoot };
 
@@ -74,18 +74,17 @@ std::string OpenTree::GetDotGraph() const
         for (const auto& flow : pNode->Outgoing)
         {
             OpenTreeNode* pSucc = GetNode(flow.pTarget);
-            sGraph += pNode->pBB->GetName() + '-' + flow.pTarget->GetName() + "[label=";
+            _Out << pNode->pBB->GetName() << '-' << flow.pTarget->GetName() << "[label=";
             if (pSucc->bVisited)
             {
-                sGraph += "Visited";
+                _Out << "Visited";
             }
-            sGraph += "];\n";
+            _Out << "];" << std::endl;
             Nodes.push_back(pSucc);
         }
     }
 
-    sGraph += "}\n";
-    return sGraph;
+    _Out << "}" << std::endl;
 }
 
 OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
