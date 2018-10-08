@@ -6,6 +6,8 @@
 class DominatorTree
 {
 public:
+    // _pRoot is the source of a dominator tree
+    // and the sink for a post-dominator tree
     DominatorTree(const BasicBlock* _pRoot, const bool _PostDom = false);
     ~DominatorTree() {};
 

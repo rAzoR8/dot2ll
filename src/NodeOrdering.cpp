@@ -101,11 +101,11 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
     return Order;
 }
 
-NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot)
+NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit)
 {
     NodeOrder Order;
 
-    DominatorTree PDT(_pRoot, true);
+    DominatorTree PDT(_pExit, true);
     std::unordered_set<BasicBlock*> Visited;
 
     ComputePaper(_pRoot, Visited, PDT, Order);
@@ -118,20 +118,7 @@ void NodeOrdering::ComputePaper(BasicBlock* _pA, std::unordered_set<BasicBlock*>
     _Visited.insert(_pA);
     _Order.push_back(_pA);
 
-    //const auto SharedAncestors = [](BasicBlock* _pPred, BasicBlock* _pSucc)
-    //{
-    //    std::vector<BasicBlock*> intersection;
-
-    //    std::set_intersection(
-    //        _pPred->GetPredecessors().begin(), _pPred->GetPredecessors().end(),
-    //        _pSucc->GetPredecessors().begin(), _pSucc->GetPredecessors().end(),
-    //        std::back_inserter(intersection));
-
-    //    // pred might have a backward edge to itself
-    //    RemoveIfValue(intersection, _pPred);
-
-    //    return intersection;
-    //};
+    std::deque<BasicBlock*> Traverse;
 
     for (BasicBlock* pB : _pA->GetSuccesors())
     {
@@ -146,9 +133,12 @@ void NodeOrdering::ComputePaper(BasicBlock* _pA, std::unordered_set<BasicBlock*>
         {            
             for (BasicBlock* pSucc : pAncestorOfA->GetSuccesors())
             {
-                // pSucc is an unvisited successor of an ancestor of a
                 if (_Visited.count(pSucc) == 0)
                 {
+                    // pSucc is an unvisited successor of an ancestor of a
+                   
+                    // Do not traverse an edge E = (A, B) if B is an unvisited successor or
+                    // a post-dominator of an unvisited successor of an ancestor of A (in the traversal tree?)
                     if (pB == pSucc || _PDT.Dominates(pB, pSucc))
                     {
                         bTraverse = false;
@@ -160,8 +150,21 @@ void NodeOrdering::ComputePaper(BasicBlock* _pA, std::unordered_set<BasicBlock*>
 
         if (bTraverse)
         {
-            ComputePaper(pB, _Visited, _PDT, _Order);
+            // When choosing between two successors of block B, visit the one which is NOT a post dominator of B first
+            if (_PDT.Dominates(pB, _pA))
+            {
+                Traverse.push_back(pB);
+            }
+            else
+            {
+                Traverse.push_front(pB);
+            }            
         }
+    }
+
+    for (BasicBlock* pB : Traverse)
+    {
+        ComputePaper(pB, _Visited, _PDT, _Order);
     }
 }
 

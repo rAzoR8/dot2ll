@@ -19,7 +19,7 @@ public:
 
     static NodeOrder ComputeBreadthFirst(BasicBlock* _pRoot);
 
-    static NodeOrder ComputePaper(BasicBlock* _pRoot);
+    static NodeOrder ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit);
 
     // convert divergent nodes with 2 backwards edges to 1 backwards and two foward edges
     static void PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront = false);

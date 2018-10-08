@@ -23,7 +23,8 @@ int main(int argc, char* argv[])
         if (bReconv)
         {
             //NodeOrder InputOrdering = NodeOrdering::ComputeDepthFirst(func.GetEntryBlock());
-            NodeOrder InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
+            //NodeOrder InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
+            NodeOrder InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
 
             // reconverge using InputOrdering
             OpenTree OT;
