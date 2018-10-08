@@ -58,6 +58,7 @@ struct CFGUtils
         return Nodes;
     }
 
+    // check if there is a path from _pCurrent to _pNode
     static bool IsReachable(const BasicBlock* _pNode, const BasicBlock* _pCurrent, std::unordered_set<const BasicBlock*>& _Set, const bool _bForward = true, const BasicBlock* _pWithout = nullptr)
     {
         if (_pCurrent == _pNode)
@@ -73,7 +74,7 @@ struct CFGUtils
             if (_Set.count(pSucc) == 0)
             {
                 _Set.insert(pSucc);
-                if (IsReachable(_pNode, pSucc, _Set, _bForward))
+                if (IsReachable(_pNode, pSucc, _Set, _bForward, _pWithout))
                 {
                     return true;
                 }

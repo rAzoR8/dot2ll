@@ -15,12 +15,12 @@ DominatorTree::DominatorTree(const BasicBlock* _pRoot, const bool _bPostDom)
         for (auto it2 = BBs.begin() + 1; it2 != end; ++it2)
         {
             const BasicBlock* pBlock = *it2;
+            Set.clear();
+
             if (CFGUtils::IsReachable(pBlock, _pRoot, Set, !_bPostDom, pDom) == false)
             {
                 m_DominatorMap.insert({ pDom, pBlock });
             }
-
-            Set.clear();
         }
     }
 }
