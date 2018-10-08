@@ -17,7 +17,7 @@ DominatorTree::DominatorTree(const BasicBlock* _pRoot, const bool _bPostDom)
             const BasicBlock* pBlock = *it2;
             Set.clear();
 
-            if (CFGUtils::IsReachable(pBlock, _pRoot, Set, !_bPostDom, pDom) == false)
+            if (pDom == _pRoot || CFGUtils::IsReachable(pBlock, _pRoot, Set, !_bPostDom, pDom) == false)
             {
                 m_DominatorMap.insert({ pDom, pBlock });
             }
