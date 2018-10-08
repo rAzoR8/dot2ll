@@ -26,12 +26,22 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
     return Order;
 }
 
+struct Front
+{
+    BasicBlock* pBB = nullptr;
+    uint32_t uDistFromRoot = UINT32_MAX;
+};
+
+inline bool operator<(const Front& l, const Front& r) { return l.uDistFromRoot < r.uDistFromRoot; }
+inline bool operator==(const Front& l, const Front& r) { return l.pBB == r.pBB; }
+
 NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
 {
     NodeOrder Order;
 
     std::unordered_set<BasicBlock*> traversed;
-    std::list<BasicBlock*> frontier = {_pRoot};
+
+    std::list<Front> frontier = { {_pRoot, 0u} };
 
     const auto AncestorsTraversed = [&traversed](BasicBlock* _pBB) -> bool
     {
@@ -47,38 +57,44 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
         return true;
     };
 
+    const auto Traverse = [&](std::list<Front>::iterator it) -> std::list<Front>::iterator
+    {
+        traversed.insert(it->pBB);
+        Order.push_back(it->pBB);
+ 
+        const auto InFrontier = [&](auto pSuccessor) {for (const auto& f : frontier) { if (f.pBB == pSuccessor) return true; } return false; };
+
+        for (BasicBlock* pSuccessor : it->pBB->GetSuccesors())
+        {
+            if (traversed.count(pSuccessor) == 0u && InFrontier(pSuccessor) == false) // ignore backward eges / loops
+            {
+                frontier.push_back({ pSuccessor, it->uDistFromRoot + 1u });
+            }
+        }
+
+        return frontier.erase(it);
+    };
+
     while (frontier.empty() == false)
     {
+        const size_t size = frontier.size();
+
         for (auto it = frontier.begin(); it != frontier.end();)
         {
-            BasicBlock* pBB = *it;
-
-            if (AncestorsTraversed(pBB))
+            if (AncestorsTraversed(it->pBB))
             {
-                traversed.insert(pBB);
-                Order.push_back(pBB);
-                it = frontier.erase(it);
-
-                for (BasicBlock* pSuccessor : pBB->GetSuccesors())
-                {
-                    if (pSuccessor != pBB && traversed.count(pSuccessor) == 0 && Contains(frontier, pSuccessor) == false) // ignore backward eges / loops
-                    {
-                        frontier.push_front(pSuccessor);
-                    }
-                }
+                it = Traverse(it);
             }
             else
             {
-                for (BasicBlock* pAncestor : pBB->GetPredecessors())
-                {
-                    if (pAncestor != pBB && traversed.count(pAncestor) == 0 && Contains(frontier, pAncestor) == false)
-                    {
-                        frontier.push_front(pAncestor);
-                    }
-                }
-
                 ++it;
             }
+        }
+
+        // size didnt change, break tie
+        if (frontier.size() == size)
+        {
+            Traverse(std::min_element(frontier.begin(), frontier.end()));
         }
     }
 

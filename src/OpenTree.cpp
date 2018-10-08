@@ -280,13 +280,14 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 
             // ADD the outgoing flow from pBB to pFlow
             // TODO: check if outgoing (successor) is unvisited (LLVM code does so)
-            OpenTreeNode::GetOutgoingFlowFromBB(pFlowNode->Outgoing, pNode->pBB);
+            pFlowNode->Outgoing.insert(pFlowNode->Outgoing.end(), pNode->Outgoing.begin(), pNode->Outgoing.end());
+            // OpenTreeNode::GetOutgoingFlowFromBB(pFlowNode->Outgoing, pNode->pBB);
 
             // reroute all outgoing edges to FlowBlock (convertes cond branch to branch)
             // LLVM code only does this if 2 outgoing edges were rerouted (i guess that the unconditional branch is simply reused/repurposed)
             pNode->pBB->GetTerminator()->Reset()->Branch(pFlow); // Branch from pNode to pFlow
 
-            // SET outgoing flow pBB -> pFlow (uncond branch)
+            // SET outgoing flow pBB -> pFlow (uncond branch) this works because we just reset the branch instr of the BB
             pNode->Outgoing.clear();
             OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB);
         }
