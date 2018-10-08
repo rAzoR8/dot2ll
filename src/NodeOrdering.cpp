@@ -118,6 +118,8 @@ void NodeOrdering::ComputePaper(BasicBlock* _pA, std::unordered_set<BasicBlock*>
     _Visited.insert(_pA);
     _Order.push_back(_pA);
 
+    HLOG("TraversalOrder: %s", WCSTR(_pA->GetName()));
+
     std::deque<BasicBlock*> Traverse;
 
     for (BasicBlock* pB : _pA->GetSuccesors())
@@ -131,9 +133,12 @@ void NodeOrdering::ComputePaper(BasicBlock* _pA, std::unordered_set<BasicBlock*>
 
         for (BasicBlock* pAncestorOfA : _pA->GetPredecessors())
         {            
+            if (pAncestorOfA == _pA) // need to skip loops otherwise pB == pSucc triggers
+                continue;
+
             for (BasicBlock* pSucc : pAncestorOfA->GetSuccesors())
             {
-                if (_Visited.count(pSucc) == 0)
+                if (_Visited.count(pSucc) == 0) // if pB == pSucc => unvisited
                 {
                     // pSucc is an unvisited successor of an ancestor of a
                    
@@ -141,11 +146,14 @@ void NodeOrdering::ComputePaper(BasicBlock* _pA, std::unordered_set<BasicBlock*>
                     // a post-dominator of an unvisited successor of an ancestor of A (in the traversal tree?)
                     if (pB == pSucc || _PDT.Dominates(pB, pSucc))
                     {
+                        HLOG("Rejected: %s", WCSTR(pB->GetName()));
                         bTraverse = false;
                         break;
                     }
                 }
             }
+            if (bTraverse == false)
+                break;
         }
 
         if (bTraverse)
