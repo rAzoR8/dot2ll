@@ -1,4 +1,5 @@
 #include "NodeOrdering.h"
+#include "DominatorTree.h"
 #include "CFGUtils.h"
 
 NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
@@ -26,20 +27,19 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
     return Order;
 }
 
-struct Front
-{
-    BasicBlock* pBB = nullptr;
-    uint32_t uDistFromRoot = UINT32_MAX;
-};
-
-inline bool operator<(const Front& l, const Front& r) { return l.uDistFromRoot < r.uDistFromRoot; }
-inline bool operator==(const Front& l, const Front& r) { return l.pBB == r.pBB; }
-
 NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
 {
     NodeOrder Order;
 
     std::unordered_set<BasicBlock*> traversed;
+
+    struct Front
+    {
+        BasicBlock* pBB = nullptr;
+        uint32_t uDistFromRoot = UINT32_MAX;
+        bool operator<(const Front& r) { return uDistFromRoot < r.uDistFromRoot; }
+
+    };
 
     std::list<Front> frontier = { {_pRoot, 0u} };
 
@@ -99,6 +99,70 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
     }
 
     return Order;
+}
+
+NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot)
+{
+    NodeOrder Order;
+
+    DominatorTree PDT(_pRoot, true);
+    std::unordered_set<BasicBlock*> Visited;
+
+    ComputePaper(_pRoot, Visited, PDT, Order);
+
+    return Order;
+}
+
+void NodeOrdering::ComputePaper(BasicBlock* _pA, std::unordered_set<BasicBlock*>& _Visited, const DominatorTree& _PDT, NodeOrder& _Order)
+{
+    _Visited.insert(_pA);
+    _Order.push_back(_pA);
+
+    //const auto SharedAncestors = [](BasicBlock* _pPred, BasicBlock* _pSucc)
+    //{
+    //    std::vector<BasicBlock*> intersection;
+
+    //    std::set_intersection(
+    //        _pPred->GetPredecessors().begin(), _pPred->GetPredecessors().end(),
+    //        _pSucc->GetPredecessors().begin(), _pSucc->GetPredecessors().end(),
+    //        std::back_inserter(intersection));
+
+    //    // pred might have a backward edge to itself
+    //    RemoveIfValue(intersection, _pPred);
+
+    //    return intersection;
+    //};
+
+    for (BasicBlock* pB : _pA->GetSuccesors())
+    {
+        if (_Visited.count(pB) != 0)
+            continue;
+
+        // pB is unvisited
+
+        bool bTraverse = true;
+
+        for (BasicBlock* pAncestorOfA : _pA->GetPredecessors())
+        {            
+            for (BasicBlock* pSucc : pAncestorOfA->GetSuccesors())
+            {
+                // pSucc is an unvisited successor of an ancestor of a
+                if (_Visited.count(pSucc) == 0)
+                {
+                    if (pB == pSucc || _PDT.Dominates(pB, pSucc))
+                    {
+                        bTraverse = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (bTraverse)
+        {
+            ComputePaper(pB, _Visited, _PDT, _Order);
+        }
+    }
 }
 
 void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront)
