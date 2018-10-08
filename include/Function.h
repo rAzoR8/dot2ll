@@ -17,6 +17,7 @@ public:
         m_sName(std::move(_Other.m_sName)),
         m_CFG(std::move(_Other.m_CFG)),
         m_pEntryBlock(_Other.m_pEntryBlock),
+        m_pExitBlock(_Other.m_pExitBlock),
         m_Parameters(std::move(_Other.m_Parameters)),
         m_pReturnType(_Other.m_pReturnType),
         m_Types(std::move(_Other.m_Types)),
