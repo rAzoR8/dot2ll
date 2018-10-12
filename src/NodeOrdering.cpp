@@ -94,7 +94,15 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
         // size didnt change, break tie
         if (frontier.size() == size)
         {
-            Traverse(std::min_element(frontier.begin(), frontier.end()));
+            // frontier is sorted already, take the first node that is not the sink!
+            for (auto it = frontier.begin(), end = frontier.end(); it != end; ++it)
+            {
+                if (it->pBB->IsSink() == false)
+                {
+                    Traverse(it);
+                    break;
+                }
+            }
         }
     }
 
