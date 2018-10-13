@@ -32,6 +32,12 @@ public:
     typename Nodes::const_iterator begin() const noexcept { return m_Nodes.begin(); }
     typename Nodes::const_iterator end() const noexcept { return m_Nodes.end(); }
 
+    typename Nodes::reverse_iterator rbegin() noexcept { return m_Nodes.rbegin(); }
+    typename Nodes::reverse_iterator rend() noexcept { return m_Nodes.rend(); }
+
+    typename Nodes::const_reverse_iterator rbegin() const noexcept { return m_Nodes.rbegin(); }
+    typename Nodes::const_reverse_iterator rend() const noexcept { return m_Nodes.rend(); }
+
     TypeInfo ResolveType(const InstrId _uTypeId) const;
     TypeInfo ResolveType(const Instruction* _pType) const;
 

@@ -22,13 +22,17 @@ int main(int argc, char* argv[])
 
         if (bReconv)
         {
+            func.EnforceUniqueExitPoint();
+
             //NodeOrder InputOrdering = NodeOrdering::ComputeDepthFirst(func.GetEntryBlock());
-            //NodeOrder InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
-            NodeOrder InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
+            NodeOrder InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
+            //NodeOrder InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
 
             // reconverge using InputOrdering
             OpenTree OT;
             OT.Process(InputOrdering);
+
+            func.Finalize();
 
             const std::string sOutDot = dotin.GetName() + "_reconv.dot";
             std::ofstream dotout(sOutDot);
@@ -45,6 +49,8 @@ int main(int argc, char* argv[])
 
         if (ll.is_open())
         {
+            func.Finalize();
+            
             InstructionSetLLVMAMD isa;
             isa.SerializeListing(func, ll);
 

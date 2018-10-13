@@ -70,6 +70,5 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sUn
         }      
     }
 
-    func.Finalize();
     return func;
 }

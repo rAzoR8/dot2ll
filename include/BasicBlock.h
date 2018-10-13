@@ -69,15 +69,10 @@ private:
 
 inline Instruction* BasicBlock::GetTerminator()
 {
-    if (m_pTerminator != nullptr)
-    {
-        return m_pTerminator;
-    }
+    return m_pTerminator;
 
-    if (m_Instructions.empty() == false)
-    {
-        return &m_Instructions.back();
-    }
-
-    return nullptr;
+    //if (m_Instructions.empty() == false)
+    //{
+    //    return &m_Instructions.back();
+    //}
 }

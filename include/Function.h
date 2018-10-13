@@ -16,8 +16,9 @@ public:
     Function(Function&& _Other) :
         m_sName(std::move(_Other.m_sName)),
         m_CFG(std::move(_Other.m_CFG)),
-        m_pEntryBlock(_Other.m_pEntryBlock),
-        m_pExitBlock(_Other.m_pExitBlock),
+        //m_pEntryBlock(_Other.m_pEntryBlock),
+        m_pConstantTypeBlock(_Other.m_pConstantTypeBlock),
+        m_pUniqueSink(_Other.m_pUniqueSink),
         m_Parameters(std::move(_Other.m_Parameters)),
         m_pReturnType(_Other.m_pReturnType),
         m_Types(std::move(_Other.m_Types)),
@@ -48,7 +49,9 @@ public:
     const std::vector<Instruction*>& GetParameters() const { return m_Parameters; }
     const Instruction* GetReturnType() const { return m_pReturnType; };
 
-    void Finalize();
+    // if multiple sinks exist, create a new unique one, rerout sinks to virtual exit
+    void EnforceUniqueExitPoint();
+    void Finalize(); // connects virtual entry point with CFG
 
     // only works if finalize has been called before!
     DominatorTree GetDominatorTree() const;
@@ -59,14 +62,18 @@ public:
     void SetCallingConvention(const CallingConvention& _CallConv) { m_CallConv = _CallConv; }
     const CallingConvention& GetCallingConvention() const { return m_CallConv; }
 
-    BasicBlock* GetEntryBlock() const { return m_pEntryBlock; }
-    BasicBlock* GetExitBlock() const { return m_pExitBlock; }
+    BasicBlock* GetEntryBlock();
+    const BasicBlock* GetEntryBlock() const;
+
+    BasicBlock* GetExitBlock();
+    const BasicBlock* GetExitBlock() const;
 
 private:
     const std::string m_sName;
     ControlFlowGraph m_CFG;
-    BasicBlock* m_pEntryBlock = nullptr;
-    BasicBlock* m_pExitBlock = nullptr;
+    BasicBlock* m_pConstantTypeBlock = nullptr;
+    //BasicBlock* m_pEntryBlock = nullptr; // OEP
+    BasicBlock* m_pUniqueSink = nullptr;
 
     std::vector<Instruction*> m_Parameters;
     Instruction* m_pReturnType = nullptr;
@@ -111,7 +118,7 @@ inline Instruction* Function::Constant(const T& _Const)
     }
 
     Instruction* pType = Type(TInfo);
-    Instruction* pConst = m_pEntryBlock->AddInstruction()->Constant(pType, ConstData);
+    Instruction* pConst = m_pConstantTypeBlock->AddInstruction()->Constant(pType, ConstData);
 
     m_Constants[uHash] = pConst;
 

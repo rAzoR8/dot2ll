@@ -304,9 +304,9 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
     for (const auto&[pSucc, Preds] : SuccTargets)
     {
         // TODO: need to add falls for preds of the flow node
-
+        OpenTreeNode* pSuccNode = GetNode(pSucc);
         // Flow block is the incoming edge to the flow blocks outgoing BB
-        GetNode(pSucc)->Incoming.push_back(pFlowNode);
+        pSuccNode->Incoming.push_back(pFlowNode); // should the flow node be the only incoming edge to the successor?
 
         std::vector<Instruction*> Values;
         std::vector<BasicBlock*> Origins;
@@ -611,14 +611,14 @@ const bool OpenSubTreeUnion::HasOutgoingNotLeadingTo(BasicBlock* _pBB) const
     {
         for (OpenTreeNode::Flow& Out : pNode->Outgoing)
         {
-            if (Out.pTarget == _pBB)
+            if (Out.pTarget != _pBB)
             {
-                return false; // there is outgoing flow leading to B
+                return true;
             }
         }
     }
 
-    return true;
+    return false;
 }
 
 const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const

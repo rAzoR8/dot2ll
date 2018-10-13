@@ -5,7 +5,7 @@ Function::Function(const std::string& _sName, const CallingConvention _CallConv)
     m_CFG(this),
     m_CallConv(_CallConv)
 {
-    m_pEntryBlock = m_CFG.NewNode(m_sName + "_ENTRYPOINT");
+    m_pConstantTypeBlock = m_CFG.NewNode(m_sName + "_ENTRYPOINT");
 }
 
 Instruction* Function::Type(const TypeInfo& _Type)
@@ -17,7 +17,7 @@ Instruction* Function::Type(const TypeInfo& _Type)
         return it->second;
     }
 
-    Instruction* pInstr = m_pEntryBlock->AddInstruction();
+    Instruction* pInstr = m_pConstantTypeBlock->AddInstruction();
 
     std::vector<InstrId> SubTypes;
 
@@ -57,52 +57,57 @@ Instruction* Function::Type(const TypeInfo& _Type)
 
 Instruction* Function::AddParameter(const Instruction* _pType, const InstrId _uIndex)
 {
-    Instruction* pParam = m_pEntryBlock->AddInstruction();
+    Instruction* pParam = m_pConstantTypeBlock->AddInstruction();
     pParam->FunctionParameter(_pType, _uIndex == InvalidId ? static_cast<InstrId>(m_Parameters.size()) : _uIndex);
     m_Parameters.push_back(pParam);
 
     return pParam;
 }
 
+void Function::EnforceUniqueExitPoint()
+{
+    bool bSink = false;
+
+    for (auto it = m_CFG.begin() + 1, end = m_CFG.end(); it != end; ++it)
+    {
+        if (it->IsSink())
+        {
+            if (bSink == false)
+            {
+                bSink = true;
+            }
+            else
+            {
+                if (m_pUniqueSink == nullptr)
+                {
+                    m_pUniqueSink = m_CFG.NewNode(m_sName + "_EXITPOINT");
+                }
+
+                if (it->m_pTerminator != nullptr && it->m_pTerminator->kInstruction == kInstruction_Return)
+                {
+                    if (m_pReturnType == nullptr)
+                    {
+                        m_pReturnType = m_Types[it->m_pTerminator->uResultTypeId];
+                    }
+
+                    it->m_pTerminator = nullptr; // disable check
+                }
+
+                it->AddInstruction()->Branch(m_pUniqueSink);
+            }
+        }
+    }
+}
+
 // function has no effect if it has already been finalized
 void Function::Finalize()
 {
-    if (m_pExitBlock == nullptr)
-    {
-        m_pExitBlock = m_CFG.NewNode(m_sName + "_EXITPOINT");
-    }
-
-    // find the source and from the entry block
-    BasicBlock* pSource = nullptr;
-
-    for (auto it = m_CFG.begin() + 1, end = m_CFG.end()-1; it != end; ++it)
-    {
-        if (it->IsSource() && pSource == nullptr)
-        {
-            pSource = &(*it);
-        }
-
-        // reroute to unique sink
-        if (it->m_bSink)
-        {
-            if (it->m_pTerminator != nullptr && it->m_pTerminator->kInstruction == kInstruction_Return)
-            {
-                if (m_pReturnType == nullptr)
-                {
-                    m_pReturnType = m_Types[it->m_pTerminator->uResultTypeId];
-                }
-
-                it->m_pTerminator = nullptr; // disable check
-            }
-
-            it->AddInstruction()->Branch(m_pExitBlock);
-        }
-    }
+    BasicBlock* pSink = GetExitBlock();
 
     // workaround for now
-    if (m_pExitBlock->GetInstructions().empty())
+    if (pSink != nullptr && pSink->GetInstructions().empty())
     {
-        m_pExitBlock->AddInstruction()->Return();
+        pSink->AddInstruction()->Return();
     }
 
     // todo: generate Phi nodes
@@ -113,18 +118,65 @@ void Function::Finalize()
     }
 
     // connect virtual entry block with user code blocks
-    if (m_pEntryBlock->GetTerminator() != nullptr && m_pEntryBlock->GetTerminator()->GetInstruction() != kInstruction_Branch)
+    if (m_pConstantTypeBlock->GetTerminator() == nullptr)
     {
-        m_pEntryBlock->AddInstruction()->Branch(pSource);
+        BasicBlock* pSource = GetEntryBlock();
+        m_pConstantTypeBlock->AddInstruction()->Branch(pSource);
     }
 }
 
 DominatorTree Function::GetDominatorTree() const
 {
-    return DominatorTree(m_pEntryBlock, false);
+    return DominatorTree(GetEntryBlock(), false);
 }
 
 DominatorTree Function::GetPostDominatorTree() const
 {
-    return DominatorTree(m_pExitBlock, true);
+    return DominatorTree(GetExitBlock(), true);
+}
+
+BasicBlock* Function::GetEntryBlock()
+{
+    return const_cast<BasicBlock*>(const_cast<const Function*>(this)->GetEntryBlock());
+}
+
+const BasicBlock* Function::GetEntryBlock() const
+{
+    if (m_pConstantTypeBlock->GetTerminator() != nullptr)
+    {
+        return m_pConstantTypeBlock;
+    }
+
+    for (auto it = m_CFG.begin() + 1, end = m_CFG.end(); it != end; ++it)
+    {
+        if (it->IsSource())
+        {
+            return &(*it);
+        }
+    }
+
+    return nullptr;
+}
+
+BasicBlock* Function::GetExitBlock()
+{
+    return const_cast<BasicBlock*>(const_cast<const Function*>(this)->GetExitBlock());
+}
+
+const BasicBlock * Function::GetExitBlock() const
+{
+    if (m_pUniqueSink != nullptr)
+    {
+        return m_pUniqueSink;
+    }
+
+    for (auto it = m_CFG.rbegin(), end = m_CFG.rend(); it != end; ++it)
+    {
+        if (it->IsSink())
+        {
+            return &(*it);
+        }
+    }
+
+    return nullptr;
 }

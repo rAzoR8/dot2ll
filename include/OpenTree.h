@@ -27,9 +27,9 @@ struct OpenTreeNode
 
     struct Flow
     {
+        BasicBlock* pTarget = nullptr;
         BasicBlock* pSource = nullptr; // Original Source S -> Flow -> (True/False)
         Instruction* pCondition = nullptr; // can be null for uncond branches
-        BasicBlock* pTarget = nullptr;
         bool bNot = false; // negated conditon
     };
 

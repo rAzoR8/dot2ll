@@ -38,7 +38,6 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
         BasicBlock* pBB = nullptr;
         uint32_t uDistFromRoot = UINT32_MAX;
         bool operator<(const Front& r) { return uDistFromRoot < r.uDistFromRoot; }
-
     };
 
     std::list<Front> frontier = { {_pRoot, 0u} };
