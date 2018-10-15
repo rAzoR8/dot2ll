@@ -4,9 +4,12 @@
 #include <unordered_map>
 #include <unordered_set>
 
+// forward delc
+class OpenTree;
+
 struct OpenTreeNode
 {
-    OpenTreeNode(BasicBlock* _pBB = nullptr);
+    OpenTreeNode(OpenTree* _pOT, BasicBlock* _pBB = nullptr);
 
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
     bool Armed() const { return pBB->IsDivergent() && Outgoing.size() == 1u; }
@@ -19,6 +22,7 @@ struct OpenTreeNode
 
     std::vector<OpenTreeNode*> Children;
 
+    OpenTree* pOT = nullptr;
     OpenTreeNode* pParent = nullptr;
     BasicBlock* pBB = nullptr;
     bool bVisited = false; // has been added to the OT
@@ -66,6 +70,7 @@ private:
 
 class OpenTree
 {
+    friend struct OpenTreeNode;
     static bool Armed(const OpenTreeNode* pNode) { return pNode->Armed(); }
     static bool Visited(const OpenTreeNode* pNode) { return pNode->bVisited; }
     static bool Flow(const OpenTreeNode* pNode) { return pNode->bFlow; }

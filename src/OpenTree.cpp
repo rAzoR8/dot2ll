@@ -160,7 +160,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
 
     // reserve enough space for root & flow blocks
     m_Nodes.reserve(_Ordering.size() * 2u);
-    m_pRoot = &m_Nodes.emplace_back();
+    m_pRoot = &m_Nodes.emplace_back(this, nullptr);
     m_pRoot->sName = "ROOT";
     m_pRoot->bVisited = true;
 
@@ -168,7 +168,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
     for (BasicBlock* B : _Ordering)
     {
         HLOG("\t%s", WCSTR(B->GetName()));
-        m_BBToNode[B] = &m_Nodes.emplace_back(B);
+        m_BBToNode[B] = &m_Nodes.emplace_back(this, B);
     }
 
     // there is no outgoing edge from the ROOT to its successors (or incoming edge from the ROOT)
@@ -244,7 +244,7 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
 void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 {
     BasicBlock* pFlow = (*_Subtree.GetNodes().begin())->pBB->GetCFG()->NewNode("FLOW" + std::to_string(m_uNumFlowBlocks++));
-    OpenTreeNode* pFlowNode = &m_Nodes.emplace_back(pFlow);
+    OpenTreeNode* pFlowNode = &m_Nodes.emplace_back(this, pFlow);
     pFlowNode->bFlow = true;
     m_BBToNode[pFlow] = pFlowNode;
     
@@ -498,8 +498,8 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
     return m_pRoot;
 }
 
-OpenTreeNode::OpenTreeNode(BasicBlock* _pBB) :
-    pBB(_pBB)
+OpenTreeNode::OpenTreeNode(OpenTree* _pOT, BasicBlock* _pBB) :
+    pOT(_pOT), pBB(_pBB)
 {
     if (_pBB != nullptr)
     {
@@ -531,7 +531,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
 
     // LLVM code keeps track of all open in/out edges AND flow out edges seperately
     // here out flow edges are part of the Outgoing vector
-    if (bFlow /*&& Outgoing.size() <= 2u && Incoming.empty()*/)
+    if (bFlow && Outgoing.empty() == false)
     {
         HASSERT(Outgoing.size() <= 2u, "Too many open outgoing flow edges");
         
@@ -554,7 +554,15 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
             HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->GetName()));
         }
 
-        // TODO: LLVM goes over Outgoing targets and removes the successor? from their incoming edges
+        // remove this pred node from the incoming edges of the targets
+        for (const OpenTreeNode::Flow& out : Outgoing)
+        {
+            OpenTreeNode* pTargetNode = pOT->GetNode(out.pTarget);
+            if (auto it = std::remove(pTargetNode->Incoming.begin(), pTargetNode->Incoming.end(), this); it != pTargetNode->Incoming.end())
+            {
+                pTargetNode->Incoming.erase(it);
+            }
+        }
 
         Outgoing.clear();
     }
@@ -598,12 +606,6 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
             }
 
             HASSERT(std::find(pParent->Children.begin(), pParent->Children.end(), this) == pParent->Children.end(), "Duplicate");
-            //auto it = std::remove(pParent->Children.begin(), pParent->Children.end(), this);
-            //while (it != pParent->Children.end())
-            //{
-            //    pParent->Children.erase(it);
-            //    it = std::remove(pParent->Children.begin(), pParent->Children.end(), this);
-            //}
         }
 
         // this node is removed from the OT, it has no ancestor or successor
