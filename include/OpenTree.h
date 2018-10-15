@@ -83,6 +83,8 @@ public:
     void SerializeDotGraph(std::ostream& _Out) const;
     void DumpDotToFile(const std::string& _sPath) const;
 
+    void LogTree(OpenTreeNode* _pNode = nullptr, std::string _sTabs = "") const;
+
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;
 

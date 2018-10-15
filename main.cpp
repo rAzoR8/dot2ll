@@ -7,6 +7,8 @@
 
 int main(int argc, char* argv[])
 {
+    hlx::Logger::Instance()->WriteToAdditionalConsole();
+
     if (argc < 2)
         return 1;
     

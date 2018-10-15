@@ -118,6 +118,32 @@ void OpenTree::DumpDotToFile(const std::string& _sPath) const
     }
 }
 
+void OpenTree::LogTree(OpenTreeNode* _pNode, std::string _sTabs) const
+{
+    if (_pNode == nullptr && m_pRoot != nullptr)
+    {
+        LogTree(m_pRoot);
+    }
+    else
+    {
+        std::string sOut, sIn;
+        for (const OpenTreeNode* pIn : _pNode->Incoming)
+        {
+            sIn += ' ' + pIn->sName;
+        }
+        for (const OpenTreeNode::Flow& out : _pNode->Outgoing)
+        {
+            sOut += ' ' + out.pTarget->GetName();
+        }
+
+        HLOG("%s%s [IN:%s OUT:%s]", WCSTR(_sTabs), WCSTR(_pNode->sName), WCSTR(sIn), WCSTR(sOut));
+        for (OpenTreeNode* pChild : _pNode->Children)
+        {
+            LogTree(pChild, _sTabs + '\t');
+        }
+    }
+}
+
 OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
 {
     if (auto it = m_BBToNode.find(_pBB); it != m_BBToNode.end())
@@ -136,6 +162,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
     m_Nodes.reserve(_Ordering.size() * 2u);
     m_pRoot = &m_Nodes.emplace_back();
     m_pRoot->sName = "ROOT";
+    m_pRoot->bVisited = true;
 
     HLOG("Node Order:");
     for (BasicBlock* B : _Ordering)
@@ -143,6 +170,8 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
         HLOG("\t%s", WCSTR(B->GetName()));
         m_BBToNode[B] = &m_Nodes.emplace_back(B);
     }
+
+    // there is no outgoing edge from the ROOT to its successors (or incoming edge from the ROOT)
 
     // initialize open incoming and outgoing edges
     for (auto&[pBB, pNode] : m_BBToNode)
@@ -178,12 +207,15 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
     // This should handle all cases:
     //pNode->pParent = InterleavePathsToBB(_pBB);
 
+    //HLOG("Adding Node %s -> %s", WCSTR(_pNode->pParent->sName), WCSTR(_pNode->sName));
     _pNode->pParent->Children.push_back(_pNode);
+
+    LogTree();
 
     // close edge from Pred to BB
     // is this the right point to close the edge? LLVM code closes edges after adding for Predecessors and then for Successors.
     // this changes the visited preds, so after interleaving makes sense
-    for (OpenTreeNode* pPred : Preds)
+    for (OpenTreeNode* pPred : Preds) // TODO: m_pRoot case is not in the Preds (need to add?)
     {
         if (pPred->pFirstClosedSuccessor == nullptr)
         {
@@ -191,6 +223,11 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
         }
 
         pPred->Close(_pNode, true);
+    }
+
+    if (Preds.empty() == false)
+    {
+        LogTree();
     }
 
     // can not close the edges to visited successors here because set N depends on the open edges.
@@ -293,12 +330,16 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         }
     }
 
+    std::string sNames;
     // Successor -> Predecessor (get the predecessor for a certain successor)
     std::unordered_map<BasicBlock*, std::vector<OpenTreeNode::Flow*>> SuccTargets;
     for (OpenTreeNode::Flow& Succ : pFlowNode->Outgoing)
     {
+        sNames += ' ' + Succ.pTarget->GetName();
         SuccTargets[Succ.pTarget].push_back(&Succ);
     }
+
+    HLOG("Reroute %s ->%s", WCSTR(pFlow->GetName()), WCSTR(sNames));
 
     // go over the unique successors of the flow block
     for (const auto&[pSucc, Preds] : SuccTargets)
@@ -460,12 +501,13 @@ bool OpenTreeNode::AncestorOf(const OpenTreeNode* _pSuccessor) const
 // close connection from predecessor (this) to the successor
 void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
 {
+    HLOG("Closing edge %s -> %s", WCSTR(sName), WCSTR(_pSuccessor->sName));
     // LLVM code keeps track of all open in/out edges AND flow out edges seperately
     // here out flow edges are part of the Outgoing vector
     if (bFlow /*&& Outgoing.size() <= 2u && Incoming.empty()*/)
     {
         HASSERT(Outgoing.size() <= 2u, "Too many open outgoing flow edges");
-
+        
         // create branch for out flow
         if (Outgoing.size() == 2u)
         {
@@ -477,10 +519,12 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
             }
 
             pBB->AddInstruction()->BranchCond(pCondition, Outgoing[0].pTarget, Outgoing[1].pTarget);
+            HLOG("BranchCond %s -> %s %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->GetName()), WCSTR(Outgoing[1].pTarget->GetName()));
         }
         else if (Outgoing.size() == 1u)
         {
             pBB->AddInstruction()->Branch(Outgoing[0].pTarget);
+            HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->GetName()));
         }
 
         // TODO: LLVM goes over Outgoing targets and removes the successor? from their incoming edges
@@ -506,6 +550,8 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
     // remove the node from the OT if all edges are closed
     if (_bRemoveClosed && Outgoing.empty() && Incoming.empty())
     {
+        HASSERT(bRemoved == false, "Node already closed");
+        HLOG("Closing node %s", WCSTR(sName));
         // move this nodes children to the parent
         for (OpenTreeNode* pChild : Children)
         {
