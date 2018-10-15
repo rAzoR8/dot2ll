@@ -57,7 +57,7 @@ private:
     std::string m_sName; // Label
     bool m_bSource = true; // Entry
     bool m_bSink = true; // Exit
-    bool m_bDivergent = false; // non uniform
+    bool m_bDivergent = true; // non uniform by default
 
     Instructions m_Instructions;
     Vec m_Successors;
