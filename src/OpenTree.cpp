@@ -230,6 +230,11 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
         LogTree();
     }
 
+    if (_pNode->Incoming.empty() && _pNode->Outgoing.empty())
+    {
+        _pNode->Close(nullptr, true);
+    }
+
     // can not close the edges to visited successors here because set N depends on the open edges.
     // question is if this is actually correct.
 
@@ -519,7 +524,11 @@ bool OpenTreeNode::AncestorOf(const OpenTreeNode* _pSuccessor) const
 // close connection from predecessor (this) to the successor
 void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
 {
-    HLOG("Closing edge %s -> %s", WCSTR(sName), WCSTR(_pSuccessor->sName));
+    if (_pSuccessor != nullptr) 
+    {
+        HLOG("Closing edge %s -> %s", WCSTR(sName), WCSTR(_pSuccessor->sName));    
+    }
+
     // LLVM code keeps track of all open in/out edges AND flow out edges seperately
     // here out flow edges are part of the Outgoing vector
     if (bFlow /*&& Outgoing.size() <= 2u && Incoming.empty()*/)
@@ -581,13 +590,21 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         }
 
         // remove the successor (child) from the parent
-        //if (pParent != nullptr && _pSuccessor != nullptr)
-        //{
-        //    if (auto it = std::remove(pParent->Children.begin(), pParent->Children.end(), _pSuccessor); it != pParent->Children.end())
-        //    {
-        //        pParent->Children.erase(it);
-        //    }
-        //}
+        if (pParent != nullptr)
+        {
+            if (auto it = std::remove(pParent->Children.begin(), pParent->Children.end(), this); it != pParent->Children.end())
+            {
+                pParent->Children.erase(it);
+            }
+
+            HASSERT(std::find(pParent->Children.begin(), pParent->Children.end(), this) == pParent->Children.end(), "Duplicate");
+            //auto it = std::remove(pParent->Children.begin(), pParent->Children.end(), this);
+            //while (it != pParent->Children.end())
+            //{
+            //    pParent->Children.erase(it);
+            //    it = std::remove(pParent->Children.begin(), pParent->Children.end(), this);
+            //}
+        }
 
         // this node is removed from the OT, it has no ancestor or successor
         pParent = nullptr;
@@ -603,10 +620,6 @@ void OpenTreeNode::GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock
     {
         return;    
     }
-
-    // TODO: LLVM code checks if the target Node is unvisited
-
-    // TODO: check if the edge Flow -> out already exisits?
 
     if (pTerminator->Is(kInstruction_Branch))
     {
@@ -627,9 +640,6 @@ void OpenTreeNode::GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock
         FalseFlow.pCondition = pTerminator->GetOperandInstr(0u); // same condition instr
         FalseFlow.pTarget = pTerminator->GetOperandBB(2u); // false branch target
         FalseFlow.bNot = true; // negate condition
-
-        // What is the case where the branch is conditional, but one open outgoing edge has been closed?
-        // Armed only if the branch is also non-uniform
     }
 }
 
