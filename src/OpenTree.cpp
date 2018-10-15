@@ -330,16 +330,17 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         }
     }
 
-    std::string sNames;
+    std::string sOuts, sIns;
     // Successor -> Predecessor (get the predecessor for a certain successor)
     std::unordered_map<BasicBlock*, std::vector<OpenTreeNode::Flow*>> SuccTargets;
     for (OpenTreeNode::Flow& Succ : pFlowNode->Outgoing)
     {
-        sNames += ' ' + Succ.pTarget->GetName();
+        sOuts += ' ' + Succ.pTarget->GetName();
+        sIns += ' ' + Succ.pSource->GetName();
         SuccTargets[Succ.pTarget].push_back(&Succ);
     }
 
-    HLOG("Reroute %s ->%s", WCSTR(pFlow->GetName()), WCSTR(sNames));
+    HLOG("Reroute%s -> %s ->%s", WCSTR(sIns), WCSTR(pFlow->GetName()), WCSTR(sOuts));
 
     // go over the unique successors of the flow block
     for (const auto&[pSucc, Preds] : SuccTargets)
@@ -550,7 +551,6 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
     // remove the node from the OT if all edges are closed
     if (_bRemoveClosed && Outgoing.empty() && Incoming.empty())
     {
-        HASSERT(bRemoved == false, "Node already closed");
         HLOG("Closing node %s", WCSTR(sName));
         // move this nodes children to the parent
         for (OpenTreeNode* pChild : Children)
@@ -564,18 +564,17 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         }
 
         // remove the successor (child) from the parent
-        if (pParent != nullptr && _pSuccessor != nullptr)
-        {
-            if (auto it = std::remove(pParent->Children.begin(), pParent->Children.end(), _pSuccessor); it != pParent->Children.end())
-            {
-                pParent->Children.erase(it);
-            }
-        }
+        //if (pParent != nullptr && _pSuccessor != nullptr)
+        //{
+        //    if (auto it = std::remove(pParent->Children.begin(), pParent->Children.end(), _pSuccessor); it != pParent->Children.end())
+        //    {
+        //        pParent->Children.erase(it);
+        //    }
+        //}
 
         // this node is removed from the OT, it has no ancestor or successor
         pParent = nullptr;
         Children.clear();
-        bRemoved = true;
     }
 }
 
