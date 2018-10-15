@@ -316,17 +316,34 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             HASSERT(pNode->Outgoing.size() <= 2u, "Too many open outgoing edges");            
 
             // ADD the outgoing flow from pBB to pFlow
-            // TODO: check if outgoing (successor) is unvisited (LLVM code does so)
-            pFlowNode->Outgoing.insert(pFlowNode->Outgoing.end(), pNode->Outgoing.begin(), pNode->Outgoing.end());
-            // OpenTreeNode::GetOutgoingFlowFromBB(pFlowNode->Outgoing, pNode->pBB);
+            // pFlowNode->Outgoing.insert(pFlowNode->Outgoing.end(), pNode->Outgoing.begin(), pNode->Outgoing.end());
 
-            // reroute all outgoing edges to FlowBlock (convertes cond branch to branch)
-            // LLVM code only does this if 2 outgoing edges were rerouted (i guess that the unconditional branch is simply reused/repurposed)
-            pNode->pBB->GetTerminator()->Reset()->Branch(pFlow); // Branch from pNode to pFlow
+            uint32_t uRerouted = 0u;
+            for (auto it = pNode->Outgoing.begin(); it != pNode->Outgoing.end();)
+            {
+                OpenTreeNode* pOutNode = GetNode(it->pTarget);
+                if (pOutNode->bVisited == false) // check if outgoing (successor) is unvisited (LLVM code does so)
+                {            
+                    pFlowNode->Outgoing.push_back(*it);
+                    it = pNode->Outgoing.erase(it);
+                    ++uRerouted;
+                }
+                else
+                {
+                    ++it;
+                }
+            }
 
-            // SET outgoing flow pBB -> pFlow (uncond branch) this works because we just reset the branch instr of the BB
-            pNode->Outgoing.clear();
-            OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB);
+            if (uRerouted > 0)
+            {
+                // reroute all outgoing edges to FlowBlock (convertes cond branch to branch)
+                // LLVM code only does this if 2 outgoing edges were rerouted (i guess that the unconditional branch is simply reused/repurposed)
+                pNode->pBB->GetTerminator()->Reset()->Branch(pFlow); // Branch from pNode to pFlow
+
+                // SET outgoing flow pBB -> pFlow (uncond branch) this works because we just reset the branch instr of the BB
+                //pNode->Outgoing.clear(); should be empt
+                OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB);
+            }
         }
     }
 
