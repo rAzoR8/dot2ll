@@ -43,17 +43,17 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         // TODO: are successors only the open FlowOutgoing of B or all open outgoing?
         std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, Visited, *this);
 
-        // close B -> visited Succ (needs to be changed if the filter above changes)
-        for (OpenTreeNode* pSucc : N)
-        {
-            pNode->Close(pSucc, true);
-        }
-
         // If N is non-empty
         if (N.empty() == false)
         {
             // Let S be the set of subtrees routed at nodes in N.
             OpenSubTreeUnion S(N);
+
+            // close B -> visited Succ (needs to be changed if the filter above changes)
+            for (OpenTreeNode* pSucc : N)
+            {
+                pNode->Close(pSucc, true);
+            }
 
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
             if (S.HasMultiRootsOrOutgoing())
@@ -367,7 +367,7 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
     // go over the unique successors of the flow block
     for (const auto&[pSucc, Preds] : SuccTargets)
     {
-        // TODO: need to add falls for preds of the flow node
+        // TODO: need to add false for preds of the flow node
         OpenTreeNode* pSuccNode = GetNode(pSucc);
         // Flow block is the incoming edge to the flow blocks outgoing BB
         pSuccNode->Incoming.push_back(pFlowNode); // should the flow node be the only incoming edge to the successor?
@@ -685,7 +685,7 @@ const bool OpenSubTreeUnion::HasOutgoingNotLeadingTo(BasicBlock* _pBB) const
     {
         for (OpenTreeNode::Flow& Out : pNode->Outgoing)
         {
-            if (Out.pTarget != _pBB)
+            if (Out.pTarget != _pBB) // LLVM code also checks if target is UNVISITED (should be the case here)
             {
                 return true;
             }
