@@ -75,5 +75,5 @@ private:
 };
 
 #ifndef CHECK_INSTR
-#define CHECK_INSTR if(kInstruction != kInstruction_Undefined || pParent->m_pTerminator != nullptr) return nullptr;
+#define CHECK_INSTR if(kInstruction != kInstruction_Undefined || pParent->m_pTerminator != nullptr) {HFATAL("Invalid instruction state"); return nullptr;}
 #endif

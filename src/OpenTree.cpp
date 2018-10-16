@@ -11,7 +11,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
-        DumpDotToFile(B->GetName() + "_before.dot");
+        //DumpDotToFile(B->GetName() + "_before.dot");
 
         OpenTreeNode* pNode = GetNode(B);
         // LLVM code ignores virtual nodes for rerouting, why?
@@ -37,7 +37,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         // => this makes sure B will be the PostDom.
         AddNode(pNode);
 
-        DumpDotToFile(B->GetName() + "_after.dot");
+        //DumpDotToFile(B->GetName() + "_after.dot");
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
         // TODO: are successors only the open FlowOutgoing of B or all open outgoing?
@@ -318,37 +318,44 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         else // handle outgoing edges for non Flow Nodes
         {
             // Regular nodes can only have up to 2 open outgoing nodes (because the ISA only has cond-branch, no switch)
-            HASSERT(pNode->Outgoing.size() <= 2u, "Too many open outgoing edges");            
+            HASSERT(pNode->Outgoing.size() <= 2u, "Too many open outgoing edges");
+            Instruction* pTerminator = pNode->pBB->GetTerminator();
 
-            // ADD the outgoing flow from pBB to pFlow
-            // pFlowNode->Outgoing.insert(pFlowNode->Outgoing.end(), pNode->Outgoing.begin(), pNode->Outgoing.end());
-
-            uint32_t uRerouted = 0u;
-            for (auto it = pNode->Outgoing.begin(); it != pNode->Outgoing.end();)
+            if (pTerminator->Is(kInstruction_Branch))
             {
-                OpenTreeNode* pOutNode = GetNode(it->pTarget);
-                if (pOutNode->bVisited == false) // check if outgoing (successor) is unvisited (LLVM code does so)
-                {            
-                    pFlowNode->Outgoing.push_back(*it);
-                    it = pNode->Outgoing.erase(it);
-                    ++uRerouted;
-                }
-                else
+                HASSERT(pNode->Outgoing.size() == 1u, "Invalid number of outgoind edges");
+                pFlowNode->Outgoing.push_back(pNode->Outgoing.front());
+                pTerminator->Reset()->Branch(pFlow);
+            }
+            else if(pTerminator->Is(kInstruction_BranchCond))
+            {
+                Instruction* pCond = pTerminator->GetOperandInstr(0u);
+                OpenTreeNode* pTrueNode = GetNode(pTerminator->GetOperandBB(1u));
+                OpenTreeNode* pFalseNode = GetNode(pTerminator->GetOperandBB(2u));
+
+                if (pTrueNode->bVisited == false && pFalseNode->bVisited == false)
                 {
-                    ++it;
+                    // rerouted both outgoing to the flow node, can replace with unconditional branch instr
+                    pTerminator->Reset()->Branch(pFlow);
                 }
+                else if (pTrueNode->bVisited == false)
+                {
+                    pTerminator->Reset()->BranchCond(pCond, pTrueNode->pBB, pFlow);
+                }
+                else if (pFalseNode->bVisited == false)
+                {
+                    pTerminator->Reset()->BranchCond(pCond, pFlow, pFalseNode->pBB);
+                }
+
+                // transfer open outgoing edges to flow node
+                pFlowNode->Outgoing.insert(pFlowNode->Outgoing.begin(), pNode->Outgoing.begin(), pNode->Outgoing.end());
             }
 
-            if (uRerouted > 0)
-            {
-                // reroute all outgoing edges to FlowBlock (convertes cond branch to branch)
-                // LLVM code only does this if 2 outgoing edges were rerouted (i guess that the unconditional branch is simply reused/repurposed)
-                pNode->pBB->GetTerminator()->Reset()->Branch(pFlow); // Branch from pNode to pFlow
-
-                // SET outgoing flow pBB -> pFlow (uncond branch) this works because we just reset the branch instr of the BB
-                //pNode->Outgoing.clear(); should be empt
-                OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB);
-            }
+            pNode->Outgoing.clear();
+            
+            // SET outgoing flow pBB -> pFlow (uncond branch) this works because we just reset the branch instr of the BB
+            //pNode->Outgoing.clear(); should be empt
+            OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB);
         }
     }
 
@@ -369,13 +376,19 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
     {
         // TODO: need to add false for preds of the flow node
         OpenTreeNode* pSuccNode = GetNode(pSucc);
-        // Flow block is the incoming edge to the flow blocks outgoing BB
-        pSuccNode->Incoming.push_back(pFlowNode); // should the flow node be the only incoming edge to the successor?
 
         std::vector<Instruction*> Values;
         std::vector<BasicBlock*> Origins;
         for (OpenTreeNode::Flow* pPred : Preds)
         {
+            // remove the source form the incoming of successor (pFlow is the onlz successor)
+            OpenTreeNode* pPredNode = GetNode(pPred->pSource);
+            if (auto it = std::remove(pSuccNode->Incoming.begin(), pSuccNode->Incoming.end(), pPredNode); it != pSuccNode->Incoming.end())
+            {
+                pSuccNode->Incoming.erase(it);
+            }
+
+            // create the conditon for the phi node
             Instruction* pCond = pPred->pCondition;
             if (pCond == nullptr) // unconditional
             {
@@ -393,6 +406,9 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         // LLVM code creates a PHI node for each of the Successors/Targets and adds it to the Flow BB
         // this phi node is the condition from all the Predecessors of the Target
         pFlow->AddInstruction()->Phi(Values, Origins);
+
+        // Flow block is the incoming edge to the flow blocks outgoing BB
+        pSuccNode->Incoming.push_back(pFlowNode); // should the flow node be the only incoming edge to the successor?
     }
 
     // add node to OT
@@ -531,10 +547,11 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
 
     // LLVM code keeps track of all open in/out edges AND flow out edges seperately
     // here out flow edges are part of the Outgoing vector
-    if (bFlow && Outgoing.empty() == false)
+    if (bFlow && Outgoing.empty() == false) // TODO: also check incoming so that it only triggers when to node is really closed?
     {
         HASSERT(Outgoing.size() <= 2u, "Too many open outgoing flow edges");
-        
+        HASSERT(Incoming.empty(), "Open incoming flow");
+
         // create branch for out flow
         if (Outgoing.size() == 2u)
         {
@@ -585,6 +602,9 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
     // remove the node from the OT if all edges are closed
     if (_bRemoveClosed && Outgoing.empty() && Incoming.empty())
     {
+        // TODO: if this is a flow node, does the parent where the children are promoted to become a flow node itself?
+        // pParent->bFlow = bFlow;
+
         HLOG("Closing node %s", WCSTR(sName));
         // move this nodes children to the parent
         for (OpenTreeNode* pChild : Children)
@@ -597,7 +617,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
             pChild->pParent = pParent;
         }
 
-        // remove the successor (child) from the parent
+        // remove the child from the parent
         if (pParent != nullptr)
         {
             if (auto it = std::remove(pParent->Children.begin(), pParent->Children.end(), this); it != pParent->Children.end())
@@ -605,7 +625,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
                 pParent->Children.erase(it);
             }
 
-            HASSERT(std::find(pParent->Children.begin(), pParent->Children.end(), this) == pParent->Children.end(), "Duplicate");
+            HASSERTD(std::find(pParent->Children.begin(), pParent->Children.end(), this) == pParent->Children.end(), "Duplicate");
         }
 
         // this node is removed from the OT, it has no ancestor or successor
