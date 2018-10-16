@@ -340,11 +340,11 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                 }
                 else if (pTrueNode->bVisited == false)
                 {
-                    pTerminator->Reset()->BranchCond(pCond, pTrueNode->pBB, pFlow);
+                    pTerminator->Reset()->BranchCond(pCond, pFlow, pFalseNode->pBB);
                 }
                 else if (pFalseNode->bVisited == false)
                 {
-                    pTerminator->Reset()->BranchCond(pCond, pFlow, pFalseNode->pBB);
+                    pTerminator->Reset()->BranchCond(pCond, pTrueNode->pBB, pFlow);
                 }
 
                 // transfer open outgoing edges to flow node
