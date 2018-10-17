@@ -40,7 +40,6 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         //DumpDotToFile(B->GetName() + "_after.dot");
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
-        // TODO: are successors only the open FlowOutgoing of B or all open outgoing?
         std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, Visited, *this);
 
         // If N is non-empty
@@ -183,6 +182,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
 
 void OpenTree::AddNode(OpenTreeNode* _pNode)
 {
+    HLOG(">>> AddNode %s", WCSTR(_pNode->sName));
     // LLVM code checks for VISITED preds, node can only be attached to a visited ancestor!
     // in LLVM the predecessors are actually the open incoming edges from FLOW nodes only. (IS THIS CORRECT?)
     const auto& Preds = FilterNodes(_pNode->Incoming, Visited, *this); // VisitedFlow ?
@@ -320,7 +320,8 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             // Regular nodes can only have up to 2 open outgoing nodes (because the ISA only has cond-branch, no switch)
             HASSERT(pNode->Outgoing.size() <= 2u, "Too many open outgoing edges");
             Instruction* pTerminator = pNode->pBB->GetTerminator();
-
+            Instruction* pCond = nullptr; bool bNot = false;
+            
             if (pTerminator->Is(kInstruction_Branch))
             {
                 HASSERT(pNode->Outgoing.size() == 1u, "Invalid number of outgoind edges");
@@ -329,7 +330,7 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             }
             else if(pTerminator->Is(kInstruction_BranchCond))
             {
-                Instruction* pCond = pTerminator->GetOperandInstr(0u);
+                pCond = pTerminator->GetOperandInstr(0u);
                 OpenTreeNode* pTrueNode = GetNode(pTerminator->GetOperandBB(1u));
                 OpenTreeNode* pFalseNode = GetNode(pTerminator->GetOperandBB(2u));
 
@@ -344,6 +345,7 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                 }
                 else if (pFalseNode->bVisited == false)
                 {
+                    bNot = true;
                     pTerminator->Reset()->BranchCond(pCond, pTrueNode->pBB, pFlow);
                 }
 
@@ -351,11 +353,16 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                 pFlowNode->Outgoing.insert(pFlowNode->Outgoing.begin(), pNode->Outgoing.begin(), pNode->Outgoing.end());
             }
 
+            // SET outgoing flow pBB -> pFlow
             pNode->Outgoing.clear();
-            
-            // SET outgoing flow pBB -> pFlow (uncond branch) this works because we just reset the branch instr of the BB
-            //pNode->Outgoing.clear(); should be empt
-            OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB);
+            auto& flow = pNode->Outgoing.emplace_back();
+            flow.pSource = pNode->pBB;
+            flow.pTarget = pFlow;
+            flow.pCondition = pCond;
+            flow.bNot = bNot;
+
+            //  (uncond branch) this works because we just reset the branch instr of the BB
+            //OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB); // This wont work because it will copy the other (visited) branch as well
         }
     }
 
