@@ -30,17 +30,16 @@ struct OpenTreeNode
 
     struct Flow
     {
-        BasicBlock* pTarget = nullptr;
         BasicBlock* pSource = nullptr; // Original Source S -> Flow -> (True/False)
+        BasicBlock* pTarget = nullptr;
         Instruction* pCondition = nullptr; // can be null for uncond branches
         bool bNot = false; // negated conditon
     };
 
-    static void GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock* _pSource);
-
     // open edges
     std::vector<OpenTreeNode*> Incoming;
     std::vector<Flow> Outgoing;
+    std::vector<Flow> FinalOutgoing; // only for closed outgoing flow
 
     // for flow blocks only
     OpenTreeNode* pFirstClosedSuccessor = nullptr; // used only for flow blocks
@@ -105,6 +104,8 @@ private:
 
     template <class Container, class Filter, class Accessor> // Accessor extracts the OT node from the Container element, Filter processes the OT node and returns true or false
     std::vector<OpenTreeNode*> FilterNodes(const Container& _Container, const Filter& _Filter, const Accessor& _Accessor) const;
+
+    void GetOutgoingFlow(std::vector<OpenTreeNode::Flow>& _OutFlow, OpenTreeNode* _pSource) const;
 
     // accessors for FilterNodes()
     OpenTreeNode* operator()(BasicBlock* _pBB) const { return GetNode(_pBB); }

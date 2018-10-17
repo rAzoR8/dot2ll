@@ -176,7 +176,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
     for (auto&[pBB, pNode] : m_BBToNode)
     {
         pNode->Incoming = FilterNodes(pBB->GetPredecessors(), True, *this);
-        OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pBB);
+        GetOutgoingFlow(pNode->Outgoing, pNode);
     }
 }
 
@@ -325,7 +325,6 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             if (pTerminator->Is(kInstruction_Branch))
             {
                 HASSERT(pNode->Outgoing.size() == 1u, "Invalid number of outgoind edges");
-                pFlowNode->Outgoing.push_back(pNode->Outgoing.front());
                 pTerminator->Reset()->Branch(pFlow);
             }
             else if(pTerminator->Is(kInstruction_BranchCond))
@@ -350,16 +349,26 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                 }
 
                 // transfer open outgoing edges to flow node
-                pFlowNode->Outgoing.insert(pFlowNode->Outgoing.begin(), pNode->Outgoing.begin(), pNode->Outgoing.end());
+                //pFlowNode->Outgoing.insert(pFlowNode->Outgoing.begin(), pNode->Outgoing.begin(), pNode->Outgoing.end());
+            }
+
+            for (const OpenTreeNode::Flow& out : pNode->Outgoing)
+            {
+                if (GetNode(out.pTarget)->bVisited == false)
+                {
+                    pFlowNode->Outgoing.push_back(out);
+                }
             }
 
             // SET outgoing flow pBB -> pFlow
             pNode->Outgoing.clear();
-            auto& flow = pNode->Outgoing.emplace_back();
-            flow.pSource = pNode->pBB;
-            flow.pTarget = pFlow;
-            flow.pCondition = pCond;
-            flow.bNot = bNot;
+            GetOutgoingFlow(pNode->Outgoing, pNode); // now checks for unvisited
+
+            //auto& flow = pNode->Outgoing.emplace_back();
+            //flow.pSource = pNode->pBB;
+            //flow.pTarget = pFlow;
+            //flow.pCondition = pCond;
+            //flow.bNot = bNot;
 
             //  (uncond branch) this works because we just reset the branch instr of the BB
             //OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB); // This wont work because it will copy the other (visited) branch as well
@@ -388,7 +397,7 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         std::vector<BasicBlock*> Origins;
         for (OpenTreeNode::Flow* pPred : Preds)
         {
-            // remove the source form the incoming of successor (pFlow is the onlz successor)
+            // remove the source form the incoming of successor (pFlow is the only successor)
             OpenTreeNode* pPredNode = GetNode(pPred->pSource);
             if (auto it = std::remove(pSuccNode->Incoming.begin(), pSuccNode->Incoming.end(), pPredNode); it != pSuccNode->Incoming.end())
             {
@@ -552,50 +561,16 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         HLOG("Closing edge %s -> %s", WCSTR(sName), WCSTR(_pSuccessor->sName));    
     }
 
-    // LLVM code keeps track of all open in/out edges AND flow out edges seperately
-    // here out flow edges are part of the Outgoing vector
-    if (bFlow && Outgoing.empty() == false) // TODO: also check incoming so that it only triggers when to node is really closed?
-    {
-        HASSERT(Outgoing.size() <= 2u, "Too many open outgoing flow edges");
-        HASSERT(Incoming.empty(), "Open incoming flow");
-
-        // create branch for out flow
-        if (Outgoing.size() == 2u)
-        {
-            Instruction* pCondition = Outgoing[0].pCondition;
-            HASSERT(pCondition != nullptr, "Invalid condtion (unconditional open edge)");
-            if (Outgoing[0].bNot)
-            {
-                pCondition = pBB->AddInstruction()->Not(pCondition);
-            }
-
-            pBB->AddInstruction()->BranchCond(pCondition, Outgoing[0].pTarget, Outgoing[1].pTarget);
-            HLOG("BranchCond %s -> %s %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->GetName()), WCSTR(Outgoing[1].pTarget->GetName()));
-        }
-        else if (Outgoing.size() == 1u)
-        {
-            pBB->AddInstruction()->Branch(Outgoing[0].pTarget);
-            HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->GetName()));
-        }
-
-        // remove this pred node from the incoming edges of the targets
-        for (const OpenTreeNode::Flow& out : Outgoing)
-        {
-            OpenTreeNode* pTargetNode = pOT->GetNode(out.pTarget);
-            if (auto it = std::remove(pTargetNode->Incoming.begin(), pTargetNode->Incoming.end(), this); it != pTargetNode->Incoming.end())
-            {
-                pTargetNode->Incoming.erase(it);
-            }
-        }
-
-        Outgoing.clear();
-    }
-
     if (_pSuccessor != nullptr)
     {
         // this is the predecessor node, remove the successor
-        if (auto it = std::remove_if(Outgoing.begin(), Outgoing.end(), [&](const Flow& _Flow) -> bool {return _Flow.pTarget == _pSuccessor->pBB; }); it != Outgoing.end())
+        if (auto it = std::find_if(Outgoing.begin(), Outgoing.end(), [&](const Flow& _Flow) -> bool {return _Flow.pTarget == _pSuccessor->pBB; }); it != Outgoing.end())
         {
+            if (bFlow)
+            {
+                FinalOutgoing.push_back(*it);
+            }
+
             Outgoing.erase(it);
         }
 
@@ -609,8 +584,41 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
     // remove the node from the OT if all edges are closed
     if (_bRemoveClosed && Outgoing.empty() && Incoming.empty())
     {
-        // TODO: if this is a flow node, does the parent where the children are promoted to become a flow node itself?
-        // pParent->bFlow = bFlow;
+        // LLVM code keeps track of all open in/out edges AND flow out edges seperately
+        // here the final outgoing flow is moved to FinalOutgoing when the edge is closed
+        if (bFlow) // TODO: also check incoming so that it only triggers when to node is really closed?
+        {
+            HASSERT(FinalOutgoing.size() <= 2u, "Too many open outgoing flow edges");
+
+            // create branch for out flow
+            if (FinalOutgoing.size() == 2u)
+            {
+                Instruction* pCondition = FinalOutgoing[0].pCondition;
+                HASSERT(pCondition != nullptr, "Invalid condtion (unconditional open edge)");
+                if (FinalOutgoing[0].bNot)
+                {
+                    pCondition = pBB->AddInstruction()->Not(pCondition);
+                }
+
+                pBB->AddInstruction()->BranchCond(pCondition, FinalOutgoing[0].pTarget, FinalOutgoing[1].pTarget);
+                HLOG("BranchCond %s -> %s %s", WCSTR(pBB->GetName()), WCSTR(FinalOutgoing[0].pTarget->GetName()), WCSTR(FinalOutgoing[1].pTarget->GetName()));
+            }
+            else if (FinalOutgoing.size() == 1u)
+            {
+                pBB->AddInstruction()->Branch(FinalOutgoing[0].pTarget);
+                HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->GetName()));
+            }
+
+            // remove this pred node from the incoming edges of the targets
+            for (const OpenTreeNode::Flow& out : FinalOutgoing)
+            {
+                OpenTreeNode* pTargetNode = pOT->GetNode(out.pTarget);
+                if (auto it = std::remove(pTargetNode->Incoming.begin(), pTargetNode->Incoming.end(), this); it != pTargetNode->Incoming.end())
+                {
+                    pTargetNode->Incoming.erase(it);
+                }
+            }
+        }
 
         HLOG("Closing node %s", WCSTR(sName));
         // move this nodes children to the parent
@@ -641,34 +649,43 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
     }
 }
 
-void OpenTreeNode::GetOutgoingFlowFromBB(std::vector<Flow>& _OutFlow, BasicBlock* _pSource)
+void OpenTree::GetOutgoingFlow(std::vector<OpenTreeNode::Flow>& _OutFlow, OpenTreeNode* _pSource) const
 {
-    Instruction* pTerminator = _pSource->GetTerminator();
+    Instruction* pTerminator = _pSource->pBB->GetTerminator();
 
-    if (pTerminator == nullptr || _pSource->GetSuccesors().empty())
+    if (pTerminator == nullptr || _pSource->pBB->GetSuccesors().empty())
     {
         return;    
     }
 
     if (pTerminator->Is(kInstruction_Branch))
     {
-        Flow& TrueFlow = _OutFlow.emplace_back();
-        TrueFlow.pSource = _pSource;
-        TrueFlow.pCondition = nullptr;
-        TrueFlow.pTarget = pTerminator->GetOperandBB(0u);
+        if (OpenTreeNode* pTarget = GetNode(pTerminator->GetOperandBB(0u)); pTarget->bVisited == false)
+        {
+            OpenTreeNode::Flow& TrueFlow = _OutFlow.emplace_back();
+            TrueFlow.pSource = _pSource->pBB;
+            TrueFlow.pCondition = nullptr;
+            TrueFlow.pTarget = pTarget->pBB;
+        }
     }
     else if (pTerminator->Is(kInstruction_BranchCond))
     {
-        Flow& TrueFlow = _OutFlow.emplace_back();
-        TrueFlow.pSource = _pSource;
-        TrueFlow.pCondition = pTerminator->GetOperandInstr(0u);
-        TrueFlow.pTarget = pTerminator->GetOperandBB(1u);
+        if (OpenTreeNode* pTarget = GetNode(pTerminator->GetOperandBB(1u)); pTarget->bVisited == false)
+        {
+            OpenTreeNode::Flow& TrueFlow = _OutFlow.emplace_back();
+            TrueFlow.pSource = _pSource->pBB;
+            TrueFlow.pCondition = pTerminator->GetOperandInstr(0u);
+            TrueFlow.pTarget = pTarget->pBB;
+        }
 
-        Flow& FalseFlow = _OutFlow.emplace_back();
-        FalseFlow.pSource = _pSource;
-        FalseFlow.pCondition = pTerminator->GetOperandInstr(0u); // same condition instr
-        FalseFlow.pTarget = pTerminator->GetOperandBB(2u); // false branch target
-        FalseFlow.bNot = true; // negate condition
+        if (OpenTreeNode* pTarget = GetNode(pTerminator->GetOperandBB(2u)); pTarget->bVisited == false)
+        {
+            OpenTreeNode::Flow& FalseFlow = _OutFlow.emplace_back();
+            FalseFlow.pSource = _pSource->pBB;
+            FalseFlow.pCondition = pTerminator->GetOperandInstr(0u); // same condition instr
+            FalseFlow.pTarget = pTarget->pBB; // false branch target
+            FalseFlow.bNot = true; // negate condition
+        }
     }
 }
 
