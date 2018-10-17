@@ -29,7 +29,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
             if (S.HasOutgoingNotLeadingTo(B))
             {
-                Reroute(S); // flow block is added to OT before B... problematic?
+                Reroute(S);
             }
         }
 
@@ -244,6 +244,7 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
 void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 {
     BasicBlock* pFlow = (*_Subtree.GetNodes().begin())->pBB->GetCFG()->NewNode("FLOW" + std::to_string(m_uNumFlowBlocks++));
+    pFlow->SetDivergent(true);
     OpenTreeNode* pFlowNode = &m_Nodes.emplace_back(this, pFlow);
     pFlowNode->bFlow = true;
     m_BBToNode[pFlow] = pFlowNode;
@@ -571,6 +572,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
                 FinalOutgoing.push_back(*it);
             }
 
+            bClosedOutgoing = true;
             Outgoing.erase(it);
         }
 

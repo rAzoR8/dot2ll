@@ -50,7 +50,7 @@ public:
 
     void SetDivergent(const bool _bDivergent) { m_bDivergent = _bDivergent; }
     const bool IsDivergent() const { return m_bDivergent && m_Successors.size() > 1u; }
-
+    const bool GetDivergenceQualifier() const { return m_bDivergent; }
 private:
     const InstrId m_uIdentifier;
 
