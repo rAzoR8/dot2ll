@@ -12,7 +12,7 @@ struct OpenTreeNode
     OpenTreeNode(OpenTree* _pOT, BasicBlock* _pBB = nullptr);
 
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
-    bool Armed() const { return pBB->GetDivergenceQualifier() && bClosedOutgoing; }
+    bool Armed() const { return (pBB->GetTerminator() == nullptr ? pBB->GetDivergenceQualifier() : pBB->IsDivergent()) && uClosedOutgoing > 0u; }
     bool AncestorOf(const OpenTreeNode* _pSuccessor) const;
 
     // called on predecesssor to close Pred->Succ
@@ -22,7 +22,7 @@ struct OpenTreeNode
 
     std::vector<OpenTreeNode*> Children;
 
-    bool bClosedOutgoing = false;
+    uint32_t uClosedOutgoing = 0u;
     OpenTree* pOT = nullptr;
     OpenTreeNode* pParent = nullptr;
     BasicBlock* pBB = nullptr;
@@ -31,8 +31,8 @@ struct OpenTreeNode
 
     struct Flow
     {
-        BasicBlock* pSource = nullptr; // Original Source S -> Flow -> (True/False)
         BasicBlock* pTarget = nullptr;
+        BasicBlock* pSource = nullptr; // Original Source S -> Flow -> (True/False)
         Instruction* pCondition = nullptr; // can be null for uncond branches
         bool bNot = false; // negated conditon
     };

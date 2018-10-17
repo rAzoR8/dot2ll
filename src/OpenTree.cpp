@@ -349,30 +349,22 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                     pTerminator->Reset()->BranchCond(pCond, pTrueNode->pBB, pFlow);
                 }
 
-                // transfer open outgoing edges to flow node
-                //pFlowNode->Outgoing.insert(pFlowNode->Outgoing.begin(), pNode->Outgoing.begin(), pNode->Outgoing.end());
             }
 
-            for (const OpenTreeNode::Flow& out : pNode->Outgoing)
-            {
-                if (GetNode(out.pTarget)->bVisited == false)
-                {
-                    pFlowNode->Outgoing.push_back(out);
-                }
-            }
+             // transfer open outgoing edges to flow node
+             pFlowNode->Outgoing.insert(pFlowNode->Outgoing.begin(), pNode->Outgoing.begin(), pNode->Outgoing.end());
+
+            //for (const OpenTreeNode::Flow& out : pNode->Outgoing)
+            //{
+            //    if (GetNode(out.pTarget)->bVisited == false)
+            //    {
+            //        pFlowNode->Outgoing.push_back(out);
+            //    }
+            //}
 
             // SET outgoing flow pBB -> pFlow
             pNode->Outgoing.clear();
             GetOutgoingFlow(pNode->Outgoing, pNode); // now checks for unvisited
-
-            //auto& flow = pNode->Outgoing.emplace_back();
-            //flow.pSource = pNode->pBB;
-            //flow.pTarget = pFlow;
-            //flow.pCondition = pCond;
-            //flow.bNot = bNot;
-
-            //  (uncond branch) this works because we just reset the branch instr of the BB
-            //OpenTreeNode::GetOutgoingFlowFromBB(pNode->Outgoing, pNode->pBB); // This wont work because it will copy the other (visited) branch as well
         }
     }
 
@@ -572,7 +564,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
                 FinalOutgoing.push_back(*it);
             }
 
-            bClosedOutgoing = true;
+            ++uClosedOutgoing;
             Outgoing.erase(it);
         }
 
@@ -588,7 +580,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
     {
         // LLVM code keeps track of all open in/out edges AND flow out edges seperately
         // here the final outgoing flow is moved to FinalOutgoing when the edge is closed
-        if (bFlow) // TODO: also check incoming so that it only triggers when to node is really closed?
+        if (bFlow)
         {
             HASSERT(FinalOutgoing.size() <= 2u, "Too many open outgoing flow edges");
 
