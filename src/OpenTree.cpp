@@ -266,7 +266,7 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 
             // is it possible that pNode->pFirstClosedSuccessor is null?
 
-            Instruction* pCondition = nullptr;
+            Instruction* pCondition = nullptr; bool bFirstUncond = false;
             Instruction* pRemainderCond = nullptr;
             for (auto it = pNode->Outgoing.begin(); it != pNode->Outgoing.end();)
             {
@@ -274,22 +274,29 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 
                 if (out.pTarget == pNode->pFirstClosedSuccessor->pBB) 
                 {
-                    Instruction* pNot = pFlow->AddInstruction()->Not(out.pCondition);
-                    if (out.bNot)
+                    if (out.pCondition == nullptr)
                     {
-                        pRemainderCond = out.pCondition;
-                        pCondition = pNot;
+                        bFirstUncond = true;
                     }
                     else
                     {
-                        pRemainderCond = pNot;
-                        pCondition = out.pCondition;
+                        Instruction* pNot = pFlow->AddInstruction()->Not(out.pCondition);
+                        if (out.bNot)
+                        {
+                            pRemainderCond = out.pCondition;
+                            pCondition = pNot;
+                        }
+                        else
+                        {
+                            pRemainderCond = pNot;
+                            pCondition = out.pCondition;
+                        }
                     }
                 }
                 else
                 {
                     out.pSource = pNode->pBB;
-                    pFlowNode->Outgoing.push_back(out);
+                    pFlowNode->Outgoing.push_back(out); // TODO update pSource to pNode->pBB here?
                 }
 
                 it = pNode->Outgoing.erase(it);
@@ -297,24 +304,22 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 
             // instead of Close we could create the final branch instruction here aswell?
 
-            if (pCondition != nullptr)
+            if (pCondition != nullptr || bFirstUncond)
             {
-                auto& first = pNode->Outgoing.emplace_back();
+                auto& first = pNode->FinalOutgoing.emplace_back(); // put into finalougoing instead?
                 first.pCondition = pCondition;
                 first.pSource = pNode->pBB;
                 first.pTarget = pNode->pFirstClosedSuccessor->pBB;
             }
 
             // always route through the new flow block
-            if (pRemainderCond == nullptr) 
-            {
-                pRemainderCond = pFlow->GetCFG()->GetFunction()->Constant(true);
-            }
-
             auto& remain = pNode->Outgoing.emplace_back();
-            remain.pCondition = pRemainderCond;
+            remain.pCondition = pRemainderCond; // nullptr = uncond branch
             remain.pSource = pNode->pBB;
             remain.pTarget = pFlow;
+
+            // LLVM code sets PredNode->NumOpenOutgoing = 1 even though two nodes are in PredNode->FlowOutgoing
+            // pNode -> pFirstClosedSuccessor is already closed!
         }
         else // handle outgoing edges for non Flow Nodes
         {
@@ -348,19 +353,10 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                     bNot = true;
                     pTerminator->Reset()->BranchCond(pCond, pTrueNode->pBB, pFlow);
                 }
-
             }
 
-             // transfer open outgoing edges to flow node
+             // transfer open outgoing edges to flow node (check unvisited ?)
              pFlowNode->Outgoing.insert(pFlowNode->Outgoing.begin(), pNode->Outgoing.begin(), pNode->Outgoing.end());
-
-            //for (const OpenTreeNode::Flow& out : pNode->Outgoing)
-            //{
-            //    if (GetNode(out.pTarget)->bVisited == false)
-            //    {
-            //        pFlowNode->Outgoing.push_back(out);
-            //    }
-            //}
 
             // SET outgoing flow pBB -> pFlow
             pNode->Outgoing.clear();
@@ -391,10 +387,14 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         for (OpenTreeNode::Flow* pPred : Preds)
         {
             // remove the source form the incoming of successor (pFlow is the only successor)
-            OpenTreeNode* pPredNode = GetNode(pPred->pSource);
+            OpenTreeNode* pPredNode = GetNode(pPred->pSource); // is pSource correct for flow nodes?
             if (auto it = std::remove(pSuccNode->Incoming.begin(), pSuccNode->Incoming.end(), pPredNode); it != pSuccNode->Incoming.end())
             {
                 pSuccNode->Incoming.erase(it);
+            }
+            else
+            {
+                HFATAL("Source not found in targets incoming");
             }
 
             // create the conditon for the phi node
@@ -559,7 +559,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         // this is the predecessor node, remove the successor
         if (auto it = std::find_if(Outgoing.begin(), Outgoing.end(), [&](const Flow& _Flow) -> bool {return _Flow.pTarget == _pSuccessor->pBB; }); it != Outgoing.end())
         {
-            if (bFlow)
+            if (bFlow) // TODO: only do this if Outgoing size was <= 2?
             {
                 FinalOutgoing.push_back(*it);
             }
@@ -609,6 +609,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
                 OpenTreeNode* pTargetNode = pOT->GetNode(out.pTarget);
                 if (auto it = std::remove(pTargetNode->Incoming.begin(), pTargetNode->Incoming.end(), this); it != pTargetNode->Incoming.end())
                 {
+                    HFATAL("Incoming should have been removed using pSuccessor above");
                     pTargetNode->Incoming.erase(it);
                 }
             }
