@@ -7,6 +7,14 @@
 // forward delc
 class OpenTree;
 
+struct Flow
+{
+    BasicBlock* pTarget = nullptr;
+    //BasicBlock* pSource = nullptr; // Original Source S -> Flow -> (True/False)
+    Instruction* pCondition = nullptr; // can be null for uncond branches
+    //bool bNot = false; // negated conditon
+};
+
 struct OpenTreeNode
 {
     OpenTreeNode(OpenTree* _pOT, BasicBlock* _pBB = nullptr);
@@ -29,14 +37,6 @@ struct OpenTreeNode
     bool bVisited = false; // has been added to the OT
     bool bFlow = false; // is a flowblock
 
-    struct Flow
-    {
-        BasicBlock* pTarget = nullptr;
-        BasicBlock* pSource = nullptr; // Original Source S -> Flow -> (True/False)
-        Instruction* pCondition = nullptr; // can be null for uncond branches
-        bool bNot = false; // negated conditon
-    };
-
     // open edges
     std::vector<OpenTreeNode*> Incoming;
     std::vector<Flow> Outgoing;
@@ -44,6 +44,19 @@ struct OpenTreeNode
 
     // for flow blocks only
     OpenTreeNode* pFirstClosedSuccessor = nullptr; // used only for flow blocks
+};
+
+struct FlowSuccessors
+{
+    std::vector<OpenTreeNode*> Vec; // successors of the flow node
+
+    // from node OpenTreeNode* under condition  Instruction*
+    using From = std::unordered_map<OpenTreeNode*, Instruction*>;
+    
+    // Target -> from (under condition)
+    std::unordered_map<OpenTreeNode*, From> Conditions;
+
+    void Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruction* _pCondition);
 };
 
 class OpenSubTreeUnion
@@ -73,7 +86,7 @@ class OpenTree
     friend struct OpenTreeNode;
     static bool Armed(const OpenTreeNode* pNode) { return pNode->Armed(); }
     static bool Visited(const OpenTreeNode* pNode) { return pNode->bVisited; }
-    static bool Flow(const OpenTreeNode* pNode) { return pNode->bFlow; }
+    //static bool Flow(const OpenTreeNode* pNode) { return pNode->bFlow; }
     static bool VisitedFlow(const OpenTreeNode* pNode) { return pNode->bVisited && pNode->bFlow; }
 
     static bool True(const OpenTreeNode* pNode) { return true; }
@@ -106,12 +119,12 @@ private:
     template <class Container, class Filter, class Accessor> // Accessor extracts the OT node from the Container element, Filter processes the OT node and returns true or false
     std::vector<OpenTreeNode*> FilterNodes(const Container& _Container, const Filter& _Filter, const Accessor& _Accessor) const;
 
-    void GetOutgoingFlow(std::vector<OpenTreeNode::Flow>& _OutFlow, OpenTreeNode* _pSource) const;
+    void GetOutgoingFlow(std::vector<Flow>& _OutFlow, OpenTreeNode* _pSource) const;
 
     // accessors for FilterNodes()
     OpenTreeNode* operator()(BasicBlock* _pBB) const { return GetNode(_pBB); }
     OpenTreeNode* operator()(OpenTreeNode* _pNode) const { return _pNode; }
-    OpenTreeNode* operator()(const OpenTreeNode::Flow& _Flow) const { return GetNode(_Flow.pTarget); }
+    OpenTreeNode* operator()(const Flow& _Flow) const { return GetNode(_Flow.pTarget); }
 
 private:
     uint32_t m_uNumFlowBlocks = 0u;
