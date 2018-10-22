@@ -32,7 +32,7 @@ struct OpenTreeNode
     struct Flow
     {
         OpenTreeNode* pTarget = nullptr;
-        Instruction* pCondition = nullptr; // can be null for uncond branches
+        Instruction* pCondition = nullptr; // condition under which to branch to pTarget
     };
 
     // open edges
@@ -41,7 +41,7 @@ struct OpenTreeNode
     std::vector<Flow> FinalOutgoing; // only for closed outgoing flow
 
     // for flow blocks only
-    OpenTreeNode* pFirstClosedSuccessor = nullptr; // used only for flow blocks
+    //OpenTreeNode* pFirstClosedSuccessor = nullptr; // used only for flow blocks
 };
 
 struct FlowSuccessors

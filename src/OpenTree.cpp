@@ -222,10 +222,10 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
     // this changes the visited preds, so after interleaving makes sense
     for (OpenTreeNode* pPred : Preds) // TODO: m_pRoot case is not in the Preds (need to add?)
     {
-        if (pPred->pFirstClosedSuccessor == nullptr)
-        {
-            pPred->pFirstClosedSuccessor = _pNode;
-        }
+        //if (pPred->pFirstClosedSuccessor == nullptr)
+        //{
+        //    pPred->pFirstClosedSuccessor = _pNode;
+        //}
 
         pPred->Close(_pNode, true);
     }
@@ -276,30 +276,23 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             // We need to split pNodes outgoing successors into 2 groups:
             // one that branches to the new pFlow block, and a original successor
 
-            HASSERT(pNode->pFirstClosedSuccessor != nullptr, "Invalid first successor");
+            Instruction* pRemainderCond = nullptr;
 
-            Instruction* pCondition = nullptr, *pRemainderCond = nullptr;
-            for (auto it = pNode->Outgoing.begin(); it != pNode->Outgoing.end();)
+            if (pNode->FinalOutgoing.empty() == false)
             {
-                if (it->pTarget == pNode->pFirstClosedSuccessor) 
-                {
-                    pCondition = it->pCondition;
-                    pRemainderCond = pFlow->AddInstruction()->Not(it->pCondition);
-                }
-                else
+                pRemainderCond = pFlow->AddInstruction()->Not(pNode->FinalOutgoing.front().pCondition); // TODO: Instruction must be added to pNode
+
+                for (auto it = pNode->FinalOutgoing.begin()+1; it != pNode->FinalOutgoing.end();)
                 {
                     S.Add(pNode, it->pTarget, it->pCondition);
-                }
-
-                it = pNode->Outgoing.erase(it);
+                    it = pNode->FinalOutgoing.erase(it);
+                }                
             }
 
-            // instead of Close we could create the final branch instruction here aswell?
-            if (pCondition != nullptr)
+            for (auto it = pNode->Outgoing.begin(); it != pNode->Outgoing.end();)
             {
-                auto& first = pNode->Outgoing.emplace_back(); // put into finalougoing instead?
-                first.pCondition = pCondition;
-                first.pTarget = pNode->pFirstClosedSuccessor;
+                S.Add(pNode, it->pTarget, it->pCondition); 
+                it = pNode->Outgoing.erase(it);
             }
 
             // always route through the new flow block
@@ -343,8 +336,8 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                 if (pTrueNode->bVisited == false && pFalseNode->bVisited == false)
                 {
                     // rerouted both outgoing to the flow node, can replace with unconditional branch instr
-                    S.Add(pNode, pTrueNode, pConstTrue);
-                    S.Add(pNode, pFalseNode, pConstTrue);
+                    S.Add(pNode, pTrueNode, pConstTrue); // pCond
+                    S.Add(pNode, pFalseNode, pConstTrue); // Not pCond
 
                     pTerminator->Reset()->Branch(pFlow);
                 }
@@ -384,6 +377,9 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                 pFlowSucc->Incoming.erase(it);
             }
         }
+
+        // TODO: print PHI node
+
 
         // flow successors
         auto& out = pFlowNode->Outgoing.emplace_back();
