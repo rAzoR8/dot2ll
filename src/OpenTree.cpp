@@ -23,10 +23,8 @@ void OpenTree::Process(const NodeOrder& _Ordering)
         //DumpDotToFile(B->GetName() + "_before.dot");
 
         OpenTreeNode* pNode = GetNode(B);
-        // LLVM code ignores virtual nodes for rerouting, why?
 
         // Let P be the set of armed predecessors of B (non-uniform node with 1 open edge)
-        // TODO: Predecessors are actually the FlowIncoming
         std::vector<OpenTreeNode*> P = FilterNodes(pNode->Incoming, Armed, *this);
 
         // If P is non-empty
@@ -41,9 +39,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
                 Reroute(S);
             }
         }
-
-        // why add the node after armed predecessors have been defused?
-        // => this makes sure B will be the PostDom.
+        
         AddNode(pNode);
 
         //DumpDotToFile(B->GetName() + "_after.dot");
@@ -393,13 +389,12 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         auto& out = pFlowNode->Outgoing.emplace_back();
         out.pTarget = pFlowSucc;
 
-        // LLVM code creates a PHI node for each of the Successors/Targets and adds it to the Flow BB
         // this phi node is the condition from all the Predecessors of the Target
 
         out.pCondition = pFlow->AddInstruction()->Phi(Values, Origins);
 
         // Flow block is the incoming edge to the flow blocks outgoing BB
-        pFlowSucc->Incoming.push_back(pFlowNode); // should the flow node be the only incoming edge to the successor?
+        pFlowSucc->Incoming.push_back(pFlowNode);
     }
 
     HLOG("Reroute%s -> %s ->%s", WCSTR(sIns), WCSTR(pFlow->GetName()), WCSTR(sOuts));
@@ -469,7 +464,7 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
 
     std::deque<OpenTreeNode*> Nodes;
 
-    auto VisitedPreds = FilterNodes(GetNode(_pBB)->Incoming /*_pBB->GetPredecessors()*/, Visited, *this);
+    auto VisitedPreds = FilterNodes(GetNode(_pBB)->Incoming, Visited, *this);
 
     // find shared ancestor in visited predecessors
     for (OpenTreeNode* pVA : VisitedPreds)
@@ -580,16 +575,6 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
             {
                 pBB->AddInstruction()->Branch(FinalOutgoing[0].pTarget->pBB);
                 HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->sName));
-            }
-
-            // remove this pred node from the incoming edges of the targets
-            for (const Flow& out : FinalOutgoing)
-            {
-                if (auto it = std::remove(out.pTarget->Incoming.begin(), out.pTarget->Incoming.end(), this); it != out.pTarget->Incoming.end())
-                {
-                    HFATAL("Incoming should have been removed using pSuccessor above");
-                    out.pTarget->Incoming.erase(it);
-                }
             }
         }
 
