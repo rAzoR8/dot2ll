@@ -139,9 +139,9 @@ void OpenTree::LogTree(OpenTreeNode* _pNode, std::string _sTabs) const
         {
             sIn += ' ' + pIn->sName;
         }
-        for (const Flow& out : _pNode->Outgoing)
+        for (const auto& out : _pNode->Outgoing)
         {
-            sOut += ' ' + out.pTarget->GetName();
+            sOut += ' ' + out.pTarget->sName;
         }
 
         HLOG("%s%s [IN:%s OUT:%s]", WCSTR(_sTabs), WCSTR(_pNode->sName), WCSTR(sIn), WCSTR(sOut));
@@ -285,19 +285,14 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             Instruction* pCondition = nullptr, *pRemainderCond = nullptr;
             for (auto it = pNode->Outgoing.begin(); it != pNode->Outgoing.end();)
             {
-                if (it->pTarget == pNode->pFirstClosedSuccessor->pBB) 
+                if (it->pTarget == pNode->pFirstClosedSuccessor) 
                 {
                     pCondition = it->pCondition;
                     pRemainderCond = pFlow->AddInstruction()->Not(it->pCondition);
                 }
                 else
                 {
-                    S.Add(pNode, GetNode(it->pTarget), it->pCondition);
-
-                    //auto& in = GetNode(out.pTarget)->Incoming;
-                    //in.erase(std::remove(in.begin(), in.end(), pNode));
-
-                    //pFlowNode->Outgoing.push_back(*it); // TODO update pSource to pNode->pBB here?
+                    S.Add(pNode, it->pTarget, it->pCondition);
                 }
 
                 it = pNode->Outgoing.erase(it);
@@ -308,13 +303,13 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             {
                 auto& first = pNode->Outgoing.emplace_back(); // put into finalougoing instead?
                 first.pCondition = pCondition;
-                first.pTarget = pNode->pFirstClosedSuccessor->pBB;
+                first.pTarget = pNode->pFirstClosedSuccessor;
             }
 
             // always route through the new flow block
             auto& remain = pNode->Outgoing.emplace_back();
             remain.pCondition = pRemainderCond != nullptr ? pRemainderCond : pConstTrue;
-            remain.pTarget = pFlow;
+            remain.pTarget = pFlowNode;
 
             // LLVM code sets PredNode->NumOpenOutgoing = 1 even though two nodes are in PredNode->FlowOutgoing
             // pNode -> pFirstClosedSuccessor is already closed!
@@ -395,8 +390,8 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
         }
 
         // flow successors
-        Flow& out = pFlowNode->Outgoing.emplace_back();
-        out.pTarget = pFlowSucc->pBB;
+        auto& out = pFlowNode->Outgoing.emplace_back();
+        out.pTarget = pFlowSucc;
 
         // LLVM code creates a PHI node for each of the Successors/Targets and adds it to the Flow BB
         // this phi node is the condition from all the Predecessors of the Target
@@ -546,9 +541,9 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
     if (_pSuccessor != nullptr)
     {
         // this is the predecessor node, remove the successor
-        if (auto it = std::find_if(Outgoing.begin(), Outgoing.end(), [&](const Flow& _Flow) -> bool {return _Flow.pTarget == _pSuccessor->pBB; }); it != Outgoing.end())
+        if (auto it = std::find_if(Outgoing.begin(), Outgoing.end(), [&](const Flow& _Flow) -> bool {return _Flow.pTarget == _pSuccessor; }); it != Outgoing.end())
         {
-            if (bFlow) // TODO: only do this if Outgoing size was <= 2?
+            if (bFlow)
             {
                 FinalOutgoing.push_back(*it);
             }
@@ -578,23 +573,22 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
             {
                 Instruction* pCondition = FinalOutgoing[0].pCondition;
                 HASSERT(pCondition != nullptr, "Invalid condtion (unconditional open edge)");
-                pBB->AddInstruction()->BranchCond(pCondition, FinalOutgoing[0].pTarget, FinalOutgoing[1].pTarget);
-                HLOG("BranchCond %s -> %s %s", WCSTR(pBB->GetName()), WCSTR(FinalOutgoing[0].pTarget->GetName()), WCSTR(FinalOutgoing[1].pTarget->GetName()));
+                pBB->AddInstruction()->BranchCond(pCondition, FinalOutgoing[0].pTarget->pBB, FinalOutgoing[1].pTarget->pBB);
+                HLOG("BranchCond %s -> %s %s", WCSTR(pBB->GetName()), WCSTR(FinalOutgoing[0].pTarget->sName), WCSTR(FinalOutgoing[1].pTarget->sName));
             }
             else if (FinalOutgoing.size() == 1u)
             {
-                pBB->AddInstruction()->Branch(FinalOutgoing[0].pTarget);
-                HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->GetName()));
+                pBB->AddInstruction()->Branch(FinalOutgoing[0].pTarget->pBB);
+                HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->sName));
             }
 
             // remove this pred node from the incoming edges of the targets
             for (const Flow& out : FinalOutgoing)
             {
-                OpenTreeNode* pTargetNode = pOT->GetNode(out.pTarget);
-                if (auto it = std::remove(pTargetNode->Incoming.begin(), pTargetNode->Incoming.end(), this); it != pTargetNode->Incoming.end())
+                if (auto it = std::remove(out.pTarget->Incoming.begin(), out.pTarget->Incoming.end(), this); it != out.pTarget->Incoming.end())
                 {
                     HFATAL("Incoming should have been removed using pSuccessor above");
-                    pTargetNode->Incoming.erase(it);
+                    out.pTarget->Incoming.erase(it);
                 }
             }
         }
@@ -628,7 +622,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
     }
 }
 
-void OpenTree::GetOutgoingFlow(std::vector<Flow>& _OutFlow, OpenTreeNode* _pSource) const
+void OpenTree::GetOutgoingFlow(std::vector<OpenTreeNode::Flow>& _OutFlow, OpenTreeNode* _pSource) const
 {
     Instruction* pTerminator = _pSource->pBB->GetTerminator();
 
@@ -641,25 +635,25 @@ void OpenTree::GetOutgoingFlow(std::vector<Flow>& _OutFlow, OpenTreeNode* _pSour
     {
         if (OpenTreeNode* pTarget = GetNode(pTerminator->GetOperandBB(0u)); pTarget->bVisited == false)
         {
-            Flow& TrueFlow = _OutFlow.emplace_back();
+            auto& TrueFlow = _OutFlow.emplace_back();
             TrueFlow.pCondition = _pSource->pBB->GetCFG()->GetFunction()->Constant(true);
-            TrueFlow.pTarget = pTarget->pBB;
+            TrueFlow.pTarget = pTarget;
         }
     }
     else if (pTerminator->Is(kInstruction_BranchCond))
     {
         if (OpenTreeNode* pTarget = GetNode(pTerminator->GetOperandBB(1u)); pTarget->bVisited == false)
         {
-            Flow& TrueFlow = _OutFlow.emplace_back();
+            auto& TrueFlow = _OutFlow.emplace_back();
             TrueFlow.pCondition = pTerminator->GetOperandInstr(0u);
-            TrueFlow.pTarget = pTarget->pBB;
+            TrueFlow.pTarget = pTarget;
         }
 
         if (OpenTreeNode* pTarget = GetNode(pTerminator->GetOperandBB(2u)); pTarget->bVisited == false)
         {
-            Flow& FalseFlow = _OutFlow.emplace_back();
+            auto& FalseFlow = _OutFlow.emplace_back();
             FalseFlow.pCondition = pTerminator->GetOperandInstr(0u); // same condition instr
-            FalseFlow.pTarget = pTarget->pBB; // false branch target
+            FalseFlow.pTarget = pTarget; // false branch target
         }
     }
 }
@@ -702,9 +696,9 @@ const bool OpenSubTreeUnion::HasOutgoingNotLeadingTo(BasicBlock* _pBB) const
 {
     for (OpenTreeNode* pNode : m_Nodes)
     {
-        for (Flow& Out : pNode->Outgoing)
+        for (auto& Out : pNode->Outgoing)
         {
-            if (Out.pTarget != _pBB) // LLVM code also checks if target is UNVISITED (should be the case here)
+            if (Out.pTarget->pBB != _pBB) // LLVM code also checks if target is UNVISITED (should be the case here)
             {
                 return true;
             }
@@ -719,7 +713,7 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
     if (m_Roots.size() > 1u)
         return true;
 
-    BasicBlock* pFirstOut = nullptr;
+    OpenTreeNode* pFirstOut = nullptr;
     for (OpenTreeNode* pNode : m_Nodes)
     {
         // LLVM code checks for UNVISITED pNode->Visited() == false, why?
@@ -734,13 +728,13 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
         {
             if (pNode->Outgoing.empty() == false)
             {
-                pFirstOut = pNode->Outgoing[0].pTarget;
+                pFirstOut = pNode->Outgoing.front().pTarget;
             }
         }
 
         if (pFirstOut != nullptr)
         {
-            for (const Flow& Out : pNode->Outgoing)
+            for (const auto& Out : pNode->Outgoing)
             {
                 if (pFirstOut != Out.pTarget)
                     return true;
