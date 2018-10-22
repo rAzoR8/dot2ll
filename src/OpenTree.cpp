@@ -321,25 +321,22 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
                 OpenTreeNode* pTrueNode = GetNode(pTerminator->GetOperandBB(1u));
                 OpenTreeNode* pFalseNode = GetNode(pTerminator->GetOperandBB(2u));
 
-                //const bool bBothOutGoing = pNode->Outgoing.size() == 2u;
-
                 if (pTrueNode->bVisited == false && pFalseNode->bVisited)
                 {
-                    S.Add(pNode, pTrueNode, pCond);
+                    S.Add(pNode, pTrueNode, pConstTrue);
                     pTerminator->Reset()->BranchCond(pCond, pFlow, pFalseNode->pBB);
                 }
                 if (pFalseNode->bVisited == false && pTrueNode->bVisited)
                 {
-                    S.Add(pNode, pFalseNode, pTerminator->Reset()->Not(pCond));
-                    pNode->pBB->AddInstruction()->BranchCond(pCond, pTrueNode->pBB, pFlow);
+                    S.Add(pNode, pFalseNode, pConstTrue);
+                    pTerminator->Reset()->BranchCond(pCond, pTrueNode->pBB, pFlow);
                 }
                 if (pTrueNode->bVisited == false && pFalseNode->bVisited == false)
                 {
                     // rerouted both outgoing to the flow node, can replace with unconditional branch instr
-                    S.Add(pNode, pTrueNode, pConstTrue); // pCond
-                    S.Add(pNode, pFalseNode, pConstTrue); // Not pCond
-
-                    pTerminator->Reset()->Branch(pFlow);
+                    S.Add(pNode, pTrueNode, pCond);
+                    S.Add(pNode, pFalseNode, pTerminator->Reset()->Not(pCond));
+                    pNode->pBB->AddInstruction()->Branch(pFlow);
                 }
             }
 
