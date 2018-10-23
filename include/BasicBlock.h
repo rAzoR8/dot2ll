@@ -46,12 +46,14 @@ public:
 
     const bool IsSource() const { return m_bSource; }
     const bool IsSink() const { return m_bSink; }
+    const bool IsVirtual() const { return m_bVirtual; }
 
     const InstrId& GetIdentifier() const { return m_uIdentifier; }
 
     void SetDivergent(const bool _bDivergent) { m_bDivergent = _bDivergent; }
     const bool IsDivergent() const { return m_bDivergent && m_Successors.size() > 1u; }
     const bool GetDivergenceQualifier() const { return m_bDivergent; }
+    void SetVirtual(const bool _bVirtual) { m_bVirtual = _bVirtual; }
 private:
     const InstrId m_uIdentifier;
 
@@ -59,6 +61,7 @@ private:
     bool m_bSource = true; // Entry
     bool m_bSink = true; // Exit
     bool m_bDivergent = true; // non uniform by default
+    bool m_bVirtual = false; // virtual entry or exit node
 
     Instructions m_Instructions;
     Vec m_Successors;

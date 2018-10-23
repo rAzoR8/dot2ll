@@ -18,6 +18,9 @@ DotGraph CFG2Dot::Convert(const ControlFlowGraph& _CFG, const std::string& _sNam
 
     for (const BasicBlock& BB : _CFG)
     {
+        if (BB.IsVirtual())
+            continue;
+
         DotNode* pNode = dot.AddNode(BB.GetName());
         TAttributes EdgeAttribts;
         if (BB.IsDivergent() == false)

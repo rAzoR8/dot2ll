@@ -6,6 +6,7 @@ Function::Function(const std::string& _sName, const CallingConvention _CallConv)
     m_CallConv(_CallConv)
 {
     m_pConstantTypeBlock = m_CFG.NewNode(m_sName + "_ENTRYPOINT");
+    m_pConstantTypeBlock->SetVirtual(true);
 }
 
 Instruction* Function::Type(const TypeInfo& _Type)
@@ -17,14 +18,14 @@ Instruction* Function::Type(const TypeInfo& _Type)
         return it->second;
     }
 
-    Instruction* pInstr = m_pConstantTypeBlock->AddInstruction();
-
     std::vector<InstrId> SubTypes;
 
     for (const TypeInfo& type : _Type.SubTypes)
     {
         SubTypes.push_back(Type(type)->uIdentifier);
     }
+
+    Instruction* pInstr = m_pConstantTypeBlock->AddInstruction();
 
     switch (_Type.kType)
     {
@@ -81,6 +82,7 @@ void Function::EnforceUniqueExitPoint()
                 if (m_pUniqueSink == nullptr)
                 {
                     m_pUniqueSink = m_CFG.NewNode(m_sName + "_EXITPOINT");
+                    m_pUniqueSink->SetVirtual(true);
                 }
 
                 if (it->m_pTerminator != nullptr && it->m_pTerminator->kInstruction == kInstruction_Return)

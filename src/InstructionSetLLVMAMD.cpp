@@ -178,7 +178,7 @@ bool InstructionSetLLVMAMD::SerializeListing(const Function& _Function, std::ost
 
     for (const BasicBlock& BB : _Function.GetCFG())
     {
-        if (BB.IsSource() == false) // entry label
+        if (BB.IsVirtual() == false) // entry label
         {
             _OutStream << BB.GetName() << ':' << std::endl;
         }

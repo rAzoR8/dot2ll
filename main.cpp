@@ -8,6 +8,8 @@
 
 int main(int argc, char* argv[])
 {
+    hlx::Logger::Instance()->WriteToStream(&std::wcout);
+
     std::string sInputFile;
 
     if (argc < 2)
@@ -34,7 +36,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    DotGraph dotin = DotParser::ParseFromFile(argv[1]);
+    DotGraph dotin = DotParser::ParseFromFile(sInputFile);
 
     if (dotin.GetNodes().empty() == false)
     {
@@ -59,7 +61,7 @@ int main(int argc, char* argv[])
 
             func.Finalize();
 
-            HASSERT(CheckReconvergence::IsReconverging(func, true), "Function %s is not reconverging!", WCSTR(func.GetName()));
+            HASSERT(CheckReconvergence::IsReconverging(func, true), "Function %s is NOT reconverging!", WCSTR(func.GetName()));
 
             const std::string sOutDot = dotin.GetName() + "_reconv.dot";
             std::ofstream dotout(sOutDot);
