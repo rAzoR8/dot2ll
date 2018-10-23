@@ -190,7 +190,7 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
     HLOG(">>> AddNode %s", WCSTR(_pNode->sName));
     // LLVM code checks for VISITED preds, node can only be attached to a visited ancestor!
     // in LLVM the predecessors are actually the open incoming edges from FLOW nodes only. (IS THIS CORRECT?)
-    const auto& Preds = FilterNodes(_pNode->Incoming, Visited, *this); // VisitedFlow ?
+    const auto& Preds = FilterNodes(_pNode->Incoming, Visited, *this);
 
     if (Preds.size() == 0u)
     {

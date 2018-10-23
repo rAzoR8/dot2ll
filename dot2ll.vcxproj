@@ -142,6 +142,7 @@
     <ClInclude Include="..\dotparse\include\DotNode.h" />
     <ClInclude Include="..\dotparse\include\DotParser.h" />
     <ClInclude Include="..\dotparse\include\DotWriter.h" />
+    <ClInclude Include="CheckReconvergence.h" />
     <ClInclude Include="include\BasicBlock.h" />
     <ClInclude Include="include\CFG2Dot.h" />
     <ClInclude Include="include\CFGUtils.h" />

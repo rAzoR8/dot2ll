@@ -33,7 +33,8 @@ public:
     Instruction* AddInstruction();
     Instruction* AddInstructionFront();
 
-    Instruction* GetTerminator();
+    Instruction* GetTerminator() { return m_pTerminator; }
+    const Instruction* GetTerminator() const { return m_pTerminator; }
 
     typename Instructions::iterator begin() noexcept { return m_Instructions.begin(); }
     typename Instructions::iterator end() noexcept { return m_Instructions.end(); }
@@ -66,13 +67,3 @@ private:
 
     Instruction* m_pTerminator = nullptr;
 };
-
-inline Instruction* BasicBlock::GetTerminator()
-{
-    return m_pTerminator;
-
-    //if (m_Instructions.empty() == false)
-    //{
-    //    return &m_Instructions.back();
-    //}
-}

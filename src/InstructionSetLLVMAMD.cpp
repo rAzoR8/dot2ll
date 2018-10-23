@@ -124,6 +124,10 @@ bool InstructionSetLLVMAMD::SerializeInstruction(const Function& _Function, cons
         _OutStream << "\t%" << _Instruction.GetAlias() << " = icmp eq " << ResolveTypeName(_Function, cfg.GetInstruction(Operands[0].uId)->GetResultTypeId());
         _OutStream << ' ' << AliasOrConst(cfg.GetInstruction(Operands[0].uId)) << ", " << AliasOrConst(cfg.GetInstruction(Operands[1].uId)) << std::endl;
         break;
+    case kInstruction_Not:
+        break;
+    case kInstruction_Phi:
+        break;
     default:
         break;
     }
