@@ -115,7 +115,85 @@ NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit)
     DominatorTree PDT(_pExit, true);
     std::unordered_set<BasicBlock*> Visited;
 
-    ComputePaper(_pRoot, Visited, PDT, Order);
+    BasicBlock* A = _pRoot;
+    std::deque<BasicBlock*> ToVisit = {A};
+
+    while (ToVisit.empty() == false)
+    {
+        ToVisit.erase(std::remove(ToVisit.begin(), ToVisit.end(), A));
+        Order.push_back(A);
+        Visited.insert(A);
+
+        for (BasicBlock* B : A->GetSuccesors())
+        {
+            if (Visited.count(B) == 0u)
+            {
+                // TODO: put them in in Dom order on the visit list
+                if (std::find(ToVisit.begin(), ToVisit.end(), B) == ToVisit.end())
+                {
+                    ToVisit.push_back(B);
+                }
+            }
+        }
+
+        if (ToVisit.empty())
+            break;
+
+        std::string sNames;
+        for (BasicBlock* BB : ToVisit)
+        {
+            sNames += ' ' + BB->GetName();
+        }
+        HLOG("Traversing %s open:%s", WCSTR(A->GetName()), WCSTR(sNames));
+
+        BasicBlock* pNext = nullptr;
+
+        for (BasicBlock* B : A->GetSuccesors())
+        {
+            if (Visited.count(B) != 0u)
+                continue;
+
+            pNext = B;
+
+            for (BasicBlock* pAncestorOfA : A->GetPredecessors())
+            {
+                if (pAncestorOfA == A) // need to skip loops otherwise pB == pSucc triggers
+                    continue;
+
+                for (BasicBlock* pSucc : pAncestorOfA->GetSuccesors())
+                {
+                    if (Visited.count(pSucc) == 0) // if pB == pSucc => unvisited
+                    {
+                        // pSucc is an unvisited successor of an ancestor of a
+
+                        // Do not traverse an edge E = (A, B) if B is an unvisited successor or
+                        // a post-dominator of an unvisited successor of an ancestor of A (in the traversal tree?)
+                        if (B == pSucc || PDT.Dominates(B, pSucc))
+                        {
+                            HLOG("Rejected: %s", WCSTR(B->GetName()));
+                            pNext = nullptr;
+                            break;
+                        }
+                    }
+                }
+
+                if (pNext == nullptr)
+                    break;
+            }
+
+            if (pNext != nullptr)
+            {
+                break;
+            }
+        }
+
+        if (pNext == nullptr)
+        {
+            pNext = ToVisit.front();
+        }
+
+        A = pNext;
+    }
 
     return Order;
 }
