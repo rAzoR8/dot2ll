@@ -45,15 +45,17 @@ int main(int argc, char* argv[])
         const bool bReconverges = CheckReconvergence::IsReconverging(func, true);
         HLOG("Input Function %s is reconverging: %s", WCSTR(func.GetName()), bReconverges ? L"true" : L"false");
 
-        const std::string sOutLL = dotin.GetName() + ".ll";
+        std::string sOutLL = dotin.GetName();
 
         if (bReconv)
         {
+            sOutLL += "_reconv";
+
             func.EnforceUniqueExitPoint();
 
             //NodeOrder InputOrdering = NodeOrdering::ComputeDepthFirst(func.GetEntryBlock());
-            NodeOrder InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
-            //NodeOrder InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
+            //NodeOrder InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
+            NodeOrder InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
 
             // reconverge using InputOrdering
             OpenTree OT;
@@ -74,6 +76,7 @@ int main(int argc, char* argv[])
             }
         }
 
+        sOutLL += ".ll";
         std::ofstream ll(sOutLL.c_str());
 
         if (ll.is_open())

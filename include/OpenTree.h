@@ -39,9 +39,6 @@ struct OpenTreeNode
     std::vector<OpenTreeNode*> Incoming;
     std::vector<Flow> Outgoing;
     std::vector<Flow> FinalOutgoing; // only for closed outgoing flow
-
-    // for flow blocks only
-    //OpenTreeNode* pFirstClosedSuccessor = nullptr; // used only for flow blocks
 };
 
 struct FlowSuccessors

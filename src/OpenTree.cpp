@@ -56,7 +56,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // close B -> visited Succ (needs to be changed if the filter above changes)
             for (OpenTreeNode* pSucc : N)
             {
-                pNode->Close(pSucc, true);
+                pNode->Close(pSucc, true);                
             }
 
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
@@ -222,11 +222,6 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
     // this changes the visited preds, so after interleaving makes sense
     for (OpenTreeNode* pPred : Preds) // TODO: m_pRoot case is not in the Preds (need to add?)
     {
-        //if (pPred->pFirstClosedSuccessor == nullptr)
-        //{
-        //    pPred->pFirstClosedSuccessor = _pNode;
-        //}
-
         pPred->Close(_pNode, true);
     }
 
@@ -235,10 +230,10 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
         LogTree();
     }
 
-    if (_pNode->Incoming.empty() && _pNode->Outgoing.empty())
-    {
-        _pNode->Close(nullptr, true);
-    }
+    //if (_pNode->Incoming.empty() && _pNode->Outgoing.empty())
+    //{
+    //    _pNode->Close(nullptr, true);
+    //}
 
     // can not close the edges to visited successors here because set N depends on the open edges.
     // question is if this is actually correct.
@@ -597,6 +592,11 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         // this node is removed from the OT, it has no ancestor or successor
         pParent = nullptr;
         Children.clear();
+    }
+
+    if (_pSuccessor != nullptr && _pSuccessor->Incoming.empty() && _pSuccessor->Outgoing.empty())
+    {
+        _pSuccessor->Close(nullptr, true);
     }
 }
 

@@ -198,69 +198,6 @@ NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit)
     return Order;
 }
 
-void NodeOrdering::ComputePaper(BasicBlock* _pA, std::unordered_set<BasicBlock*>& _Visited, const DominatorTree& _PDT, NodeOrder& _Order)
-{
-    _Visited.insert(_pA);
-    _Order.push_back(_pA);
-
-    HLOG("TraversalOrder: %s", WCSTR(_pA->GetName()));
-
-    std::deque<BasicBlock*> Traverse;
-
-    for (BasicBlock* pB : _pA->GetSuccesors())
-    {
-        if (_Visited.count(pB) != 0)
-            continue;
-
-        // pB is unvisited
-
-        bool bTraverse = true;
-
-        for (BasicBlock* pAncestorOfA : _pA->GetPredecessors())
-        {            
-            if (pAncestorOfA == _pA) // need to skip loops otherwise pB == pSucc triggers
-                continue;
-
-            for (BasicBlock* pSucc : pAncestorOfA->GetSuccesors())
-            {
-                if (_Visited.count(pSucc) == 0) // if pB == pSucc => unvisited
-                {
-                    // pSucc is an unvisited successor of an ancestor of a
-                   
-                    // Do not traverse an edge E = (A, B) if B is an unvisited successor or
-                    // a post-dominator of an unvisited successor of an ancestor of A (in the traversal tree?)
-                    if (pB == pSucc || _PDT.Dominates(pB, pSucc))
-                    {
-                        HLOG("Rejected: %s", WCSTR(pB->GetName()));
-                        bTraverse = false;
-                        break;
-                    }
-                }
-            }
-            if (bTraverse == false)
-                break;
-        }
-
-        if (bTraverse)
-        {
-            // When choosing between two successors of block B, visit the one which is NOT a post dominator of B first
-            if (_PDT.Dominates(pB, _pA))
-            {
-                Traverse.push_back(pB);
-            }
-            else
-            {
-                Traverse.push_front(pB);
-            }            
-        }
-    }
-
-    for (BasicBlock* pB : Traverse)
-    {
-        ComputePaper(pB, _Visited, _PDT, _Order);
-    }
-}
-
 void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront)
 {
     for (auto it = _Order.begin(); it != _Order.end(); ++it)

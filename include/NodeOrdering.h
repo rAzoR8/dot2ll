@@ -25,6 +25,5 @@ public:
     static void PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront = false);
 
 private:
-    static void ComputePaper(BasicBlock* _pBB, std::unordered_set<BasicBlock*>& _Visited, const DominatorTree& _PDT, NodeOrder& _Order);
 
 };
