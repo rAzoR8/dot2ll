@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     {
         Function func = Dot2CFG::Convert(dotin);
 
-        const bool bReconverges = CheckReconvergence::IsReconverging(func, true);
+        const bool bReconverges = CheckReconvergence::IsReconverging(func, !bReconv, true);
         HLOG("Input Function %s is reconverging: %s", WCSTR(func.GetName()), bReconverges ? L"true" : L"false");
 
         std::string sOutLL = dotin.GetName();

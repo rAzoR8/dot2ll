@@ -6,11 +6,11 @@ class CheckReconvergence
 {
 public:
 
-    static bool IsReconverging(const Function& _Func, const bool _bDisplayAll = false);
+    static bool IsReconverging(const Function& _Func, const bool _bLog = true, const bool _bDisplayAll = false);
 
 };
 
-bool CheckReconvergence::IsReconverging(const Function& _Func, const bool _bDisplayAll)
+bool CheckReconvergence::IsReconverging(const Function& _Func, const bool _bLog, const bool _bDisplayAll)
 {
     DominatorTree PDT = _Func.GetPostDominatorTree();
     bool bFuncReconv = true;
@@ -36,9 +36,12 @@ bool CheckReconvergence::IsReconverging(const Function& _Func, const bool _bDisp
 
             if (bBBReconv == false)
             {
-                HWARNING("%s not Reconverging:", WCSTR(BB.GetName()));
-                HLOG("\t[%s dom %s = %d && %s dom %s = %d]", WCSTR(pTrueBlock->GetName()), WCSTR(BB.GetName()), bTrueDomBB, WCSTR(pTrueBlock->GetName()), WCSTR(pFalseBlock->GetName()), bTrueDomFalse);
-                HLOG("\t[%s dom %s = %d && %s dom %s = %d]", WCSTR(pFalseBlock->GetName()), WCSTR(BB.GetName()), bFalseDomBB, WCSTR(pFalseBlock->GetName()), WCSTR(pTrueBlock->GetName()), bFalseDomTrue);
+                if (_bLog)
+                {
+                    HLOG("%s not Reconverging:", WCSTR(BB.GetName()));
+                    HLOG("\t[%s dom %s = %d && %s dom %s = %d]", WCSTR(pTrueBlock->GetName()), WCSTR(BB.GetName()), bTrueDomBB, WCSTR(pTrueBlock->GetName()), WCSTR(pFalseBlock->GetName()), bTrueDomFalse);
+                    HLOG("\t[%s dom %s = %d && %s dom %s = %d]", WCSTR(pFalseBlock->GetName()), WCSTR(BB.GetName()), bFalseDomBB, WCSTR(pFalseBlock->GetName()), WCSTR(pTrueBlock->GetName()), bFalseDomTrue);
+                }
 
                 bFuncReconv = false;
                 if (_bDisplayAll == false)

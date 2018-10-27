@@ -24,6 +24,8 @@ void OpenTree::Process(const NodeOrder& _Ordering)
 
         OpenTreeNode* pNode = GetNode(B);
 
+        HLOG(">>> Processing %s", WCSTR(pNode->sName));
+
         // Let P be the set of armed predecessors of B (non-uniform node with 1 open edge)
         std::vector<OpenTreeNode*> P = FilterNodes(pNode->Incoming, Armed, *this);
 
@@ -122,13 +124,9 @@ void OpenTree::DumpDotToFile(const std::string& _sPath) const
     }
 }
 
-void OpenTree::LogTree(OpenTreeNode* _pNode, std::string _sTabs) const
+void OpenTreeNode::LogTree(OpenTreeNode* _pNode, std::string _sTabs)
 {
-    if (_pNode == nullptr && m_pRoot != nullptr)
-    {
-        LogTree(m_pRoot);
-    }
-    else
+    if (_pNode != nullptr)
     {
         std::string sOut, sIn;
         for (const OpenTreeNode* pIn : _pNode->Incoming)
@@ -140,7 +138,7 @@ void OpenTree::LogTree(OpenTreeNode* _pNode, std::string _sTabs) const
             sOut += ' ' + out.pTarget->sName;
         }
 
-        HLOG("%s%s [IN:%s OUT:%s]", WCSTR(_sTabs), WCSTR(_pNode->sName), WCSTR(sIn), WCSTR(sOut));
+        HLOG("%s%s [IN:%s OUT:%s] %s", WCSTR(_sTabs), WCSTR(_pNode->sName), WCSTR(sIn), WCSTR(sOut), (_pNode->pBB != nullptr && _pNode->Armed()) ? L"armed" : L"");
         for (OpenTreeNode* pChild : _pNode->Children)
         {
             LogTree(pChild, _sTabs + '\t');
@@ -187,7 +185,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
 
 void OpenTree::AddNode(OpenTreeNode* _pNode)
 {
-    HLOG(">>> AddNode %s", WCSTR(_pNode->sName));
+    HLOG("AddNode %s", WCSTR(_pNode->sName));
     // LLVM code checks for VISITED preds, node can only be attached to a visited ancestor!
     // in LLVM the predecessors are actually the open incoming edges from FLOW nodes only. (IS THIS CORRECT?)
     const auto& Preds = FilterNodes(_pNode->Incoming, Visited, *this);
@@ -206,16 +204,16 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
     }
     else
     {
-        _pNode->pParent = InterleavePathsToBB(_pNode->pBB);
+        _pNode->pParent = InterleavePathsTo(_pNode);
     }
 
     // This should handle all cases:
     //pNode->pParent = InterleavePathsToBB(_pBB);
 
-    //HLOG("Adding Node %s -> %s", WCSTR(_pNode->pParent->sName), WCSTR(_pNode->sName));
+    HLOG("Attaching Node %s -> %s", WCSTR(_pNode->pParent->sName), WCSTR(_pNode->sName));
     _pNode->pParent->Children.push_back(_pNode);
 
-    LogTree();
+    OpenTreeNode::LogTree(m_pRoot);
 
     // close edge from Pred to BB
     // is this the right point to close the edge? LLVM code closes edges after adding for Predecessors and then for Successors.
@@ -224,16 +222,6 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
     {
         pPred->Close(_pNode, true);
     }
-
-    if (Preds.empty() == false)
-    {
-        LogTree();
-    }
-
-    //if (_pNode->Incoming.empty() && _pNode->Outgoing.empty())
-    //{
-    //    _pNode->Close(nullptr, true);
-    //}
 
     // can not close the edges to visited successors here because set N depends on the open edges.
     // question is if this is actually correct.
@@ -391,13 +379,15 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
     AddNode(pFlowNode);
 }
 
-// interleaves all node paths up until _pBB, returns last leave node (new ancestor)
-OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
+// interleaves all node paths up until _pNode, returns last leave node (new ancestor)
+OpenTreeNode* OpenTree::InterleavePathsTo(OpenTreeNode* _pNode)
 {
     std::deque<OpenTreeNode*> Branches;
     std::vector<OpenTreeNode*> Leaves;
 
-    OpenTreeNode* pPrev = CommonAncestor(_pBB);
+    OpenTreeNode* pPrev = CommonAncestor(_pNode);
+
+    HLOG("%s is common ancestor of %s", WCSTR(pPrev->sName), WCSTR(_pNode->sName));
 
     for (OpenTreeNode* pBranch : pPrev->Children)
     {
@@ -424,6 +414,7 @@ OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
             }
         }
 
+        //HLOG("Attaching %s to %s", WCSTR(pBranch->sName), WCSTR(pPrev->sName));
         pPrev->Children = { pBranch };
         pBranch->pParent = pPrev;
         pPrev = pBranch;
@@ -434,9 +425,10 @@ OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
 
     for (OpenTreeNode* pLeave : Leaves)
     {
-        if (pLeave->pBB == _pBB) // skip target node
+        if (pLeave == _pNode) // skip target node
             continue;
 
+        //HLOG("Attaching %s to %s", WCSTR(pLeave->sName), WCSTR(pPrev->sName));
         pPrev->Children = { pLeave };
         pLeave->pParent = pPrev;
         pPrev = pLeave;
@@ -446,13 +438,13 @@ OpenTreeNode* OpenTree::InterleavePathsToBB(BasicBlock* _pBB)
 }
 
 // returns root if non is found
-OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
+OpenTreeNode* OpenTree::CommonAncestor(OpenTreeNode* _pNode) const
 {
     std::unordered_set<OpenTreeNode*> Ancestors;
 
     std::deque<OpenTreeNode*> Nodes;
 
-    auto VisitedPreds = FilterNodes(GetNode(_pBB)->Incoming, Visited, *this);
+    auto VisitedPreds = FilterNodes(_pNode->Incoming, Visited, *this);
 
     // find shared ancestor in visited predecessors
     for (OpenTreeNode* pVA : VisitedPreds)
@@ -465,12 +457,21 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
         OpenTreeNode* pAncestor = Nodes.front();
         Nodes.pop_front();
 
+        //HLOG("Checking ancestor %s", WCSTR(pAncestor->sName));
+
         bool bIsCommanAncestor = true;
 
         // check if this ancestor is an ancestor of all predecessors
         for (OpenTreeNode* pPred : VisitedPreds)
         {
-            bIsCommanAncestor &= pAncestor->AncestorOf(pPred);
+            bool bAncestor = false;
+            if (pPred != pAncestor)
+            {
+                bAncestor = pAncestor->AncestorOf(pPred);
+                HLOG("%s %s ancestor of %s", WCSTR(pAncestor->sName), bAncestor ? L"is" : L"is not", WCSTR(pPred->sName));
+            }
+
+            bIsCommanAncestor &= bAncestor;
         }
 
         if (bIsCommanAncestor)
@@ -486,6 +487,7 @@ OpenTreeNode* OpenTree::CommonAncestor(BasicBlock* _pBB) const
     }
 
     // todo: select lowest common ancestor?
+    HLOG("Did not find a commong ancestor, using root");
 
     return m_pRoot;
 }
@@ -511,6 +513,16 @@ bool OpenTreeNode::AncestorOf(const OpenTreeNode* _pSuccessor) const
     }
 
     return false;
+}
+
+OpenTreeNode* OpenTreeNode::GetRoot()
+{
+    if (pParent == nullptr)
+    {
+        return this;
+    }
+
+    return pParent->GetRoot();
 }
 
 // close connection from predecessor (this) to the successor
@@ -542,9 +554,15 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         }
     }
 
+    if (_pSuccessor != nullptr && _pSuccessor->Incoming.empty() && _pSuccessor->Outgoing.empty())
+    {
+        _pSuccessor->Close(nullptr, true);
+    }
+
     // remove the node from the OT if all edges are closed
     if (_bRemoveClosed && Outgoing.empty() && Incoming.empty())
     {
+        OpenTreeNode* pRoot = GetRoot();
         // LLVM code keeps track of all open in/out edges AND flow out edges seperately
         // here the final outgoing flow is moved to FinalOutgoing when the edge is closed
         if (bFlow)
@@ -572,6 +590,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         {
             if (pParent != nullptr)
             {
+                HLOG("Moving child %s to %s", WCSTR(pChild->sName), WCSTR(pParent->sName));
                 pParent->Children.push_back(pChild);
             }
 
@@ -592,11 +611,8 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
         // this node is removed from the OT, it has no ancestor or successor
         pParent = nullptr;
         Children.clear();
-    }
 
-    if (_pSuccessor != nullptr && _pSuccessor->Incoming.empty() && _pSuccessor->Outgoing.empty())
-    {
-        _pSuccessor->Close(nullptr, true);
+        LogTree(pRoot);
     }
 }
 
@@ -697,25 +713,18 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
         // LLVM code checks for UNVISITED pNode->Visited() == false, why?
         // because visited also means the node has been rerouted eventually?
 
-        if (pNode->bVisited)
+        for (const auto& Out : pNode->Outgoing)
         {
-            continue;
-        }
-
-        if (pFirstOut == nullptr)
-        {
-            if (pNode->Outgoing.empty() == false)
+            if (Out.pTarget->bVisited == false)
             {
-                pFirstOut = pNode->Outgoing.front().pTarget;
-            }
-        }
-
-        if (pFirstOut != nullptr)
-        {
-            for (const auto& Out : pNode->Outgoing)
-            {
-                if (pFirstOut != Out.pTarget)
+                if (pFirstOut == nullptr)
+                {
+                    pFirstOut = Out.pTarget;
+                }
+                else if (pFirstOut != Out.pTarget)
+                {
                     return true;
+                }
             }
         }
     }

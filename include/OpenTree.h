@@ -14,8 +14,9 @@ struct OpenTreeNode
     // is non-uniform (divergent) and one of the outgoing edges has already been closed
     bool Armed() const { return (pBB->GetTerminator() == nullptr ? pBB->GetDivergenceQualifier() : pBB->IsDivergent()) && uClosedOutgoing > 0u; }
     bool AncestorOf(const OpenTreeNode* _pSuccessor) const;
+    OpenTreeNode* GetRoot();
 
-    // called on predecesssor to close Pred->Succ
+    // called on predecesssor to close Pred->Succ, returns true if the OT changed
     void Close(OpenTreeNode* _Successor, const bool _bRemoveClosed = false);
 
     std::string sName;
@@ -39,6 +40,8 @@ struct OpenTreeNode
     std::vector<OpenTreeNode*> Incoming;
     std::vector<Flow> Outgoing;
     std::vector<Flow> FinalOutgoing; // only for closed outgoing flow
+
+    static void LogTree(OpenTreeNode* _pNode = nullptr, std::string _sTabs = "");
 };
 
 struct FlowSuccessors
@@ -95,8 +98,6 @@ public:
     void SerializeDotGraph(std::ostream& _Out) const;
     void DumpDotToFile(const std::string& _sPath) const;
 
-    void LogTree(OpenTreeNode* _pNode = nullptr, std::string _sTabs = "") const;
-
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;
 
@@ -107,12 +108,12 @@ private:
     void Reroute(OpenSubTreeUnion& _Subtree);
 
     // return lowest ancestor of BB
-    OpenTreeNode* InterleavePathsToBB(BasicBlock* _pBB);
+    OpenTreeNode* InterleavePathsTo(OpenTreeNode* _pNode);
 
-    OpenTreeNode* CommonAncestor(BasicBlock* _pBB) const;
+    OpenTreeNode* CommonAncestor(OpenTreeNode* _pNode) const;
 
-    template <class Container, class Filter, class Accessor> // Accessor extracts the OT node from the Container element, Filter processes the OT node and returns true or false
-    std::vector<OpenTreeNode*> FilterNodes(const Container& _Container, const Filter& _Filter, const Accessor& _Accessor) const;
+    template <class OutputContainer = std::vector<OpenTreeNode*>, class Container, class Filter, class Accessor> // Accessor extracts the OT node from the Container element, Filter processes the OT node and returns true or false
+    OutputContainer FilterNodes(const Container& _Container, const Filter& _Filter, const Accessor& _Accessor) const;
 
     void GetOutgoingFlow(std::vector<OpenTreeNode::Flow>& _OutFlow, OpenTreeNode* _pSource) const;
 
@@ -128,10 +129,10 @@ private:
     std::unordered_map<BasicBlock*, OpenTreeNode*> m_BBToNode;
 };
 
-template<class Container, class Filter, class Accessor>
-inline std::vector<OpenTreeNode*> OpenTree::FilterNodes(const Container& _Container, const Filter& _Filter, const Accessor& _Accessor) const
+template<class OutputContainer, class Container, class Filter, class Accessor>
+inline OutputContainer OpenTree::FilterNodes(const Container& _Container, const Filter& _Filter, const Accessor& _Accessor) const
 {
-    std::vector<OpenTreeNode*> Nodes;
+    OutputContainer Nodes;
 
     for (const auto& Elem : _Container)
     {
