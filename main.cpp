@@ -15,6 +15,8 @@ int main(int argc, char* argv[])
     if (argc < 2)
         return 1;
 
+    NodeOrdering::Type kOrder = NodeOrdering::DepthFirstDom;
+
     bool bReconv = false;
     //bool bCheck = false;
 
@@ -25,6 +27,18 @@ int main(int argc, char* argv[])
         if (token == "-r")
         {
             bReconv = true;
+        }
+        else if (token == "-depthfirst")
+        {
+            kOrder = NodeOrdering::DepthFirst;
+        }
+        else if (token == "-depthfirstdom")
+        {
+            kOrder = NodeOrdering::DepthFirstDom;
+        }
+        else if (token == "-breadthfirst")
+        {
+            kOrder = NodeOrdering::BreadthFirst;
         }
         //else if (token == "-c")
         //{
@@ -53,9 +67,21 @@ int main(int argc, char* argv[])
 
             func.EnforceUniqueExitPoint();
 
-            //NodeOrder InputOrdering = NodeOrdering::ComputeDepthFirst(func.GetEntryBlock());
-            //NodeOrder InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
-            NodeOrder InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
+            NodeOrder InputOrdering;
+
+            switch (kOrder)
+            {
+            case NodeOrdering::DepthFirst:
+                InputOrdering = NodeOrdering::ComputeDepthFirst(func.GetEntryBlock());
+                break;
+            case NodeOrdering::BreadthFirst:
+                InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
+                break;
+            case NodeOrdering::DepthFirstDom:
+            default:
+                InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
+                break;
+            }
 
             // reconverge using InputOrdering
             OpenTree OT;
