@@ -14,7 +14,7 @@ static const std::wstring OrderNames[] =
     L"DepthFirstDom",
 };
 
-void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, const bool _bReconv = false)
+void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, const bool _bReconv = false, const std::filesystem::path& _sOutPath = {})
 {
     DotGraph dotin = DotParser::ParseFromFile(_sDotFile);
 
@@ -64,7 +64,7 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
 
             HASSERTD(bOutputReconverging, "Function %s is NOT reconverging!", WCSTR(func.GetName()));
 
-            std::ofstream dotout(sOutName + ".dot");
+            std::ofstream dotout(_sOutPath / (sOutName + ".dot"));
 
             if (dotout.is_open())
             {
@@ -74,7 +74,7 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
             }
         }
 
-        std::ofstream ll(sOutName + ".ll");
+        std::ofstream ll(_sOutPath / (sOutName + ".ll"));
 
         if (ll.is_open())
         {
@@ -93,6 +93,7 @@ int main(int argc, char* argv[])
     hlx::Logger::Instance()->WriteToStream(&std::wcout);
 
     std::filesystem::path InputPath;
+    std::filesystem::path OutPath;
 
     if (argc < 2)
         return 1;
@@ -100,7 +101,6 @@ int main(int argc, char* argv[])
     NodeOrdering::Type kOrder = NodeOrdering::DepthFirstDom;
 
     bool bReconv = false;
-    //bool bCheck = false;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -126,13 +126,18 @@ int main(int argc, char* argv[])
         {
             kOrder = NodeOrdering::All;
         }
-        //else if (token == "-c")
-        //{
-        //    bCheck = false;
-        //}
+        else if (token == "-out" && (i+1) < argc)
+        {
+            OutPath = argv[i+1];
+            i++;
+        }
         else
         {
             InputPath = token;
+            if (OutPath.empty())
+            {
+                OutPath = std::filesystem::is_directory(InputPath) ? InputPath : InputPath.parent_path();
+            }
         }
     }
 
@@ -144,13 +149,13 @@ int main(int argc, char* argv[])
             {
                 if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
                 {
-                    dot2ll(Entry.path().string(), _kOrder, bReconv);
+                    dot2ll(Entry.path().string(), _kOrder, bReconv, OutPath);
                 }
             }
         }
         else
         {
-            dot2ll(InputPath.string(), _kOrder, bReconv);
+            dot2ll(InputPath.string(), _kOrder, bReconv, OutPath);
         }
     };
 
