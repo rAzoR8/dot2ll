@@ -122,6 +122,10 @@ int main(int argc, char* argv[])
         {
             kOrder = NodeOrdering::BreadthFirst;
         }
+        else if (token == "-all")
+        {
+            kOrder = NodeOrdering::All;
+        }
         //else if (token == "-c")
         //{
         //    bCheck = false;
@@ -132,21 +136,35 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (std::filesystem::is_directory(InputPath))
+    const auto Reconv = [&](NodeOrdering::Type _kOrder)
     {
-        for (const auto& Entry : std::filesystem::directory_iterator(InputPath))
+        if (std::filesystem::is_directory(InputPath))
         {
-            if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
+            for (const auto& Entry : std::filesystem::directory_iterator(InputPath))
             {
-                dot2ll(Entry.path().string(), kOrder, bReconv);
+                if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
+                {
+                    dot2ll(Entry.path().string(), _kOrder, bReconv);
+                }
             }
+        }
+        else
+        {
+            dot2ll(InputPath.string(), _kOrder, bReconv);
+        }
+    };
+
+    if (kOrder == NodeOrdering::All)
+    {
+        for (uint32_t i = 0u; i < NodeOrdering::All; ++i)
+        {
+            Reconv(NodeOrdering::Type(i));
         }
     }
     else
     {
-        dot2ll(InputPath.string(), kOrder, bReconv);
+        Reconv(kOrder);
     }
-    
 
     return 0;
 }

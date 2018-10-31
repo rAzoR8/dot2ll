@@ -12,11 +12,12 @@ class DominatorTree;
 class NodeOrdering
 {
 public:
-    enum Type
+    enum Type : uint32_t
     {
         DepthFirst = 0,
         BreadthFirst = 1,
         DepthFirstDom = 2,
+        All
     };
 
     NodeOrdering() {};
