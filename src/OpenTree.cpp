@@ -76,7 +76,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
 
 void OpenTree::SerializeDotGraph(std::ostream& _Out) const
 {
-    _Out << "digraph OT {\n";
+    _Out << "digraph OT {\nnode[shape = box]\n";
 
     std::deque<OpenTreeNode*> Nodes = { m_pRoot };
 
