@@ -87,6 +87,12 @@ void OpenTree::SerializeDotGraph(std::ostream& _Out) const
 
         bool bPrinted = false;
 
+        if (pNode->pBB != nullptr && pNode->Armed())
+        {
+            _Out << pNode->sName << "[color=red];" << std::endl;
+            bPrinted = true;
+        }
+
         for (const OpenTreeNode* pIn : pNode->Incoming)
         {
             _Out << pIn->sName << " -> " << pNode->sName << "[style=dashed];" << std::endl;
