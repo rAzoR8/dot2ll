@@ -17,12 +17,13 @@ void OpenTree::Process(const NodeOrder& _Ordering)
 
     Prepare(Ordering);
 
+    // root
+    DumpDotToFile("0_step.dot");
+
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
         uint32_t uStep = 0u;
-        DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
-
         OpenTreeNode* pNode = GetNode(B);
 
         HLOG(">>> Processing %s", WCSTR(pNode->sName));
@@ -60,13 +61,14 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             // close B -> visited Succ (needs to be changed if the filter above changes)
             for (OpenTreeNode* pSucc : N)
             {
-                pNode->Close(pSucc, true);                
+                pNode->Close(pSucc);                
             }
 
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
             if (S.HasMultiRootsOrOutgoing())
             {
                 Reroute(S);
+                DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
             }
         }
     }
@@ -214,7 +216,7 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
     // this changes the visited preds, so after interleaving makes sense
     for (OpenTreeNode* pPred : Preds) // TODO: m_pRoot case is not in the Preds (need to add?)
     {
-        pPred->Close(_pNode, true);
+        pPred->Close(_pNode);
     }
 
     // can not close the edges to visited successors here because set N depends on the open edges.
@@ -520,7 +522,7 @@ OpenTreeNode* OpenTreeNode::GetRoot()
 }
 
 // close connection from predecessor (this) to the successor
-void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
+void OpenTreeNode::Close(OpenTreeNode* _pSuccessor)
 {
     if (_pSuccessor != nullptr) 
     {
@@ -550,11 +552,11 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor, const bool _bRemoveClosed)
 
     if (_pSuccessor != nullptr && _pSuccessor->Incoming.empty() && _pSuccessor->Outgoing.empty())
     {
-        _pSuccessor->Close(nullptr, true);
+        _pSuccessor->Close(nullptr);
     }
 
     // remove the node from the OT if all edges are closed
-    if (_bRemoveClosed && Outgoing.empty() && Incoming.empty())
+    if (pOT->m_bRemoveClosed && Outgoing.empty() && Incoming.empty())
     {
         OpenTreeNode* pRoot = GetRoot();
         // LLVM code keeps track of all open in/out edges AND flow out edges seperately

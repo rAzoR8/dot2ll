@@ -17,7 +17,7 @@ struct OpenTreeNode
     OpenTreeNode* GetRoot();
 
     // called on predecesssor to close Pred->Succ, returns true if the OT changed
-    void Close(OpenTreeNode* _Successor, const bool _bRemoveClosed = false);
+    void Close(OpenTreeNode* _Successor);
 
     std::string sName;
 
@@ -90,7 +90,8 @@ class OpenTree
     static bool True(const OpenTreeNode* pNode) { return true; }
 
 public:
-    OpenTree(const std::string& _sDebugOutPath = "testoutput/") : m_sDebugOutputPath(_sDebugOutPath) {};
+    OpenTree(const bool _bRemoveClosed = true, const std::string& _sDebugOutPath = "testoutput/") : 
+        m_sDebugOutputPath(_sDebugOutPath), m_bRemoveClosed(_bRemoveClosed) {};
     ~OpenTree() {};
 
     void Process(const NodeOrder& _Ordering);
@@ -127,6 +128,7 @@ private:
     std::vector<OpenTreeNode> m_Nodes;
     OpenTreeNode* m_pRoot = nullptr; // virtual root
     std::unordered_map<BasicBlock*, OpenTreeNode*> m_BBToNode;
+    const bool m_bRemoveClosed;
     std::string m_sDebugOutputPath;
 };
 

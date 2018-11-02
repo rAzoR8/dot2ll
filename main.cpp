@@ -54,7 +54,7 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
             }
 
             // reconverge using InputOrdering
-            OpenTree OT(_sOutPath.string() + "/");
+            OpenTree OT(true ,_sOutPath.string() + "/");
             OT.Process(InputOrdering);
 
             func.Finalize();
