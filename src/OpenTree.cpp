@@ -85,25 +85,30 @@ void OpenTree::SerializeDotGraph(std::ostream& _Out) const
         OpenTreeNode* pNode = Nodes.front();
         Nodes.pop_front();
 
+        bool bPrinted = false;
+
         for (const OpenTreeNode* pIn : pNode->Incoming)
         {
-            _Out << pIn->sName << " -> " << pNode->sName << "[style=dashed]" << std::endl;
+            _Out << pIn->sName << " -> " << pNode->sName << "[style=dashed];" << std::endl;
+            bPrinted = true;
         }
 
         for (const auto& flow : pNode->Outgoing)
         {
-            _Out << pNode->sName << " -> " << flow.pTarget->sName << "[style=dotted]" << std::endl;
-        }
-
-        if (pNode->Children.empty())
-        {
-            _Out << pNode->sName << ';' << std::endl;
+            _Out << pNode->sName << " -> " << flow.pTarget->sName << "[style=dotted];" << std::endl;
+            bPrinted = true;
         }
 
         for(OpenTreeNode* pSucc : pNode->Children)
         {
+            bPrinted = true;
             _Out << pNode->sName << " -> " << pSucc->sName << ';' << std::endl;
             Nodes.push_back(pSucc);
+        }
+
+        if (bPrinted == false)
+        {
+            _Out << pNode->sName << ';' << std::endl;
         }
     }
 
