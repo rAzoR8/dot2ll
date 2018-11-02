@@ -54,15 +54,14 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
             }
 
             // reconverge using InputOrdering
-            OpenTree OT;
+            OpenTree OT(_sOutPath.string() + "/");
             OT.Process(InputOrdering);
 
             func.Finalize();
 
             const bool bOutputReconverging = CheckReconvergence::IsReconverging(func, true);
             hlx::Logger::Instance()->Log(bOutputReconverging ? hlx::kMessageType_Info : hlx::kMessageType_Error, WFUNC, WFILE, __LINE__, L"Function %s reconverging!\n", bOutputReconverging ? L"is" : L"is NOT");
-
-            HASSERTD(bOutputReconverging, "Function %s is NOT reconverging!", WCSTR(func.GetName()));
+            assert(bOutputReconverging);
 
             std::ofstream dotout(_sOutPath / (sOutName + ".dot"));
 

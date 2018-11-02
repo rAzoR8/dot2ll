@@ -20,7 +20,8 @@ void OpenTree::Process(const NodeOrder& _Ordering)
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
     {
-        //DumpDotToFile(B->GetName() + "_before.dot");
+        uint32_t uStep = 0u;
+        DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
 
         OpenTreeNode* pNode = GetNode(B);
 
@@ -39,12 +40,13 @@ void OpenTree::Process(const NodeOrder& _Ordering)
             if (S.HasOutgoingNotLeadingTo(B))
             {
                 Reroute(S);
+                DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
             }
         }
         
         AddNode(pNode);
 
-        //DumpDotToFile(B->GetName() + "_after.dot");
+        DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
 
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
         std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, Visited, *this);
@@ -72,7 +74,7 @@ void OpenTree::Process(const NodeOrder& _Ordering)
 
 void OpenTree::SerializeDotGraph(std::ostream& _Out) const
 {
-    _Out << "graph OT {\n";
+    _Out << "digraph OT {\n";
 
     std::deque<OpenTreeNode*> Nodes = { m_pRoot };
 
@@ -81,17 +83,16 @@ void OpenTree::SerializeDotGraph(std::ostream& _Out) const
         OpenTreeNode* pNode = Nodes.front();
         Nodes.pop_front();
 
-#ifdef OUTGOING
-        if (pNode->Outgoing.empty())
+        for (const OpenTreeNode* pIn : pNode->Incoming)
         {
-            _Out << pNode->sName << ';' << std::endl;
+            _Out << pIn->sName << " -> " << pNode->sName << "[style=dashed]" << std::endl;
         }
 
         for (const auto& flow : pNode->Outgoing)
         {
-            OpenTreeNode* pSucc = GetNode(flow.pTarget);
-            _Out << pNode->sName << " -- " << flow.pTarget->GetName();
-#else
+            _Out << pNode->sName << " -> " << flow.pTarget->sName << "[style=dotted]" << std::endl;
+        }
+
         if (pNode->Children.empty())
         {
             _Out << pNode->sName << ';' << std::endl;
@@ -99,14 +100,7 @@ void OpenTree::SerializeDotGraph(std::ostream& _Out) const
 
         for(OpenTreeNode* pSucc : pNode->Children)
         {
-            _Out << pNode->sName << " -- " << pSucc->sName;
-#endif
-            _Out << "[label=";
-            if (pSucc->bVisited)
-            {
-                _Out << "Visited";
-            }
-            _Out << "];" << std::endl;
+            _Out << pNode->sName << " -> " << pSucc->sName << ';' << std::endl;
             Nodes.push_back(pSucc);
         }
     }
@@ -116,7 +110,7 @@ void OpenTree::SerializeDotGraph(std::ostream& _Out) const
 
 void OpenTree::DumpDotToFile(const std::string& _sPath) const
 {
-    std::ofstream stream(_sPath);
+    std::ofstream stream(m_sDebugOutputPath + _sPath);
     if (stream.is_open())
     {
         SerializeDotGraph(stream);
@@ -166,7 +160,7 @@ void OpenTree::Prepare(NodeOrder& _Ordering)
     m_pRoot->sName = "ROOT";
     m_pRoot->bVisited = true;
 
-    HLOG("Node Order:");
+    HLOG("Node Order [%d]:", _Ordering.size());
     for (BasicBlock* B : _Ordering)
     {
         HLOG("\t%s", WCSTR(B->GetName()));
@@ -487,7 +481,7 @@ OpenTreeNode* OpenTree::CommonAncestor(OpenTreeNode* _pNode) const
     }
 
     // todo: select lowest common ancestor?
-    HLOG("Did not find a commong ancestor, using root");
+    HWARNING("Did not find a commong ancestor, using root");
 
     return m_pRoot;
 }

@@ -90,7 +90,7 @@ class OpenTree
     static bool True(const OpenTreeNode* pNode) { return true; }
 
 public:
-    OpenTree() {};
+    OpenTree(const std::string& _sDebugOutPath = "testoutput/") : m_sDebugOutputPath(_sDebugOutPath) {};
     ~OpenTree() {};
 
     void Process(const NodeOrder& _Ordering);
@@ -127,6 +127,7 @@ private:
     std::vector<OpenTreeNode> m_Nodes;
     OpenTreeNode* m_pRoot = nullptr; // virtual root
     std::unordered_map<BasicBlock*, OpenTreeNode*> m_BBToNode;
+    std::string m_sDebugOutputPath;
 };
 
 template<class OutputContainer, class Container, class Filter, class Accessor>
