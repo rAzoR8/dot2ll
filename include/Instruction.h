@@ -18,6 +18,9 @@ public:
     Instruction& operator=(const Instruction& _Other) = delete;
     Instruction& operator=(Instruction&&) = delete;
 
+    bool operator==(const Instruction& _Other) const { return uIdentifier == _Other.uIdentifier && pParent == _Other.pParent; }
+    bool operator!=(const Instruction& _Other) const { return uIdentifier != _Other.uIdentifier || pParent != _Other.pParent; }
+
     ~Instruction() {};    
 
     const std::vector<Operand>& GetOperands() const { return Operands; }
@@ -32,6 +35,9 @@ public:
 
     void SetAlias(const std::string& _sAlias) { sAlias = _sAlias; };
     const std::string& GetAlias() const { return sAlias; }
+
+    Instruction* GetPrevInstruction() const;
+    Instruction* GetNextInstruction() const;
 
     // all instruction generators return their pointers if construction was successful, nullptr other wise
     Instruction* Nop();
@@ -56,6 +62,8 @@ public:
     Instruction* GetOperandInstr(const InstrId _uIndex) const;
     BasicBlock* GetOperandBB(const InstrId _uIndex) const;
 
+    BasicBlock* GetBasicBlock() const { return pParent; }
+
 private:
     // to be called from function
     Instruction* FunctionParameter(const Instruction* _pType, const InstrId _uIndex);
@@ -75,5 +83,5 @@ private:
 };
 
 #ifndef CHECK_INSTR
-#define CHECK_INSTR if(kInstruction != kInstruction_Undefined || pParent->m_pTerminator != nullptr) {HFATAL("Invalid instruction state"); return nullptr;}
+#define CHECK_INSTR if(kInstruction != kInstruction_Undefined) {HFATAL("Invalid instruction state"); return nullptr;}
 #endif

@@ -35,3 +35,37 @@ Instruction* BasicBlock::AddInstructionFront()
     m_pParent->m_Instructions.push_back(pInstr);
     return pInstr;
 }
+
+Instruction* BasicBlock::InsertInstructionBefore(typename Instructions::const_iterator _Succ)
+{
+    Instruction* pInstr = &*m_Instructions.emplace(_Succ, static_cast<InstrId>(m_pParent->m_Instructions.size()), this);
+    m_pParent->m_Instructions.push_back(pInstr);
+    return pInstr;
+}
+
+Instruction* BasicBlock::InsertInstructionAfter(typename Instructions::const_iterator _Prev)
+{
+    return InsertInstructionBefore(++_Prev);
+}
+
+Instruction* BasicBlock::InsertInstructionBefore(Instruction* _pSuccInstr)
+{
+    if (auto it = std::find(m_Instructions.begin(), m_Instructions.end(), *_pSuccInstr); it != m_Instructions.end())
+    {
+        return InsertInstructionBefore(it);
+    }
+
+    HFATALD("Did not find instruction %s in basic block %s", WCSTR(_pSuccInstr->GetAlias()), WCSTR(m_sName));
+    return nullptr;
+}
+
+Instruction* BasicBlock::InsertInstructionAfter(Instruction* _pPrevInstr)
+{
+    if (auto it = std::find(m_Instructions.begin(), m_Instructions.end(), *_pPrevInstr); it != m_Instructions.end())
+    {
+        return InsertInstructionAfter(it);
+    }
+
+    HFATALD("Did not find instruction %s in basic block %s", WCSTR(_pPrevInstr->GetAlias()), WCSTR(m_sName));
+    return nullptr;
+}

@@ -1,6 +1,7 @@
 #include "OpenTree.h"
 #include "ControlFlowGraph.h"
 #include "Function.h"
+#include <deque>
 
 void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruction* _pCondition)
 {
@@ -270,7 +271,8 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
 
             if (pNode->FinalOutgoing.empty() == false)
             {
-                pRemainderCond = pFlow->AddInstruction()->Not(pNode->FinalOutgoing.front().pCondition); // TODO: Instruction must be added to pNode
+                Instruction* pCond = pNode->FinalOutgoing.front().pCondition;
+                pRemainderCond = pCond->GetBasicBlock()->InsertInstructionAfter(pCond)->Not(pCond);
 
                 for (auto it = pNode->FinalOutgoing.begin()+1; it != pNode->FinalOutgoing.end();)
                 {
@@ -289,9 +291,6 @@ void OpenTree::Reroute(OpenSubTreeUnion& _Subtree)
             auto& remain = pNode->Outgoing.emplace_back();
             remain.pCondition = pRemainderCond != nullptr ? pRemainderCond : pConstTrue;
             remain.pTarget = pFlowNode;
-
-            // LLVM code sets PredNode->NumOpenOutgoing = 1 even though two nodes are in PredNode->FlowOutgoing
-            // pNode -> pFirstClosedSuccessor is already closed!
         }
         else // handle outgoing edges for non Flow Nodes
         {

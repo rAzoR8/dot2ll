@@ -3,6 +3,24 @@
 #include "Function.h"
 #include <algorithm>
 
+Instruction* Instruction::GetPrevInstruction() const
+{
+    if (auto it = std::find(pParent->m_Instructions.begin(), pParent->m_Instructions.end(), *this); it != pParent->m_Instructions.begin())
+    {
+        return &*(--it);
+    }
+    return nullptr;
+}
+
+Instruction* Instruction::GetNextInstruction() const
+{
+    if (auto it = std::find(pParent->m_Instructions.begin(), pParent->m_Instructions.end(), *this); it != pParent->m_Instructions.end())
+    {
+        return &*(++it);
+    }
+    return nullptr;
+}
+
 Instruction* Instruction::Nop()
 {
     CHECK_INSTR;

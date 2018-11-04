@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Instruction.h"
-#include <deque>
+#include <list>
 #include <string>
 
 class BasicBlock
@@ -12,7 +12,7 @@ class BasicBlock
 
 public:
     using Vec = std::vector<BasicBlock*>;
-    using Instructions = std::deque<Instruction>;
+    using Instructions = std::list<Instruction>;
 
     BasicBlock(const InstrId _uIndentifier, ControlFlowGraph* _pParent, const std::string& _sName) :
         m_uIdentifier(_uIndentifier), m_pParent(_pParent), m_sName(_sName)
@@ -32,6 +32,12 @@ public:
 
     Instruction* AddInstruction();
     Instruction* AddInstructionFront();
+
+    Instruction* InsertInstructionBefore(typename Instructions::const_iterator _Succ);
+    Instruction* InsertInstructionAfter(typename Instructions::const_iterator _Prev);
+
+    Instruction* InsertInstructionBefore(Instruction* _pSuccInstr);
+    Instruction* InsertInstructionAfter(Instruction* _pPrevInstr);
 
     Instruction* GetTerminator() { return m_pTerminator; }
     const Instruction* GetTerminator() const { return m_pTerminator; }

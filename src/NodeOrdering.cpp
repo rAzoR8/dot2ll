@@ -1,6 +1,7 @@
 #include "NodeOrdering.h"
 #include "DominatorTree.h"
 #include "CFGUtils.h"
+#include <deque>
 
 NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
 {
