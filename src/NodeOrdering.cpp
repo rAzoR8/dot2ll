@@ -28,6 +28,32 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
     return Order;
 }
 
+bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Checked, std::unordered_set<BasicBlock*>& _Traversed, BasicBlock* _pBB)
+{
+    for (BasicBlock* pAncestor : _pBB->GetPredecessors())
+    {
+        if (_Checked.count(pAncestor) == 0) // ignore loops etc
+        {
+            if (_Traversed.count(pAncestor) == 0) // not traversed yet
+                return false;
+
+            _Checked.insert(pAncestor);
+
+            if (AncestorsTraversed(_Checked, _Traversed, pAncestor) == false)
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Traversed, BasicBlock* _pBB)
+{
+    std::unordered_set<BasicBlock*> checked;
+
+    return AncestorsTraversed(checked, _Traversed, _pBB);
+};
+
 NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
 {
     NodeOrder Order;
@@ -43,22 +69,10 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
 
     std::list<Front> frontier = { {_pRoot, 0u} };
 
-    const auto AncestorsTraversed = [&traversed](BasicBlock* _pBB) -> bool
-    {
-        for (BasicBlock* pAncestor : _pBB->GetPredecessors())
-        {
-            if (pAncestor != _pBB) // ignore loops / backward edges to self
-            {
-                if (traversed.count(pAncestor) == 0) // not traversed yet
-                    return false;
-            }
-        }
-
-        return true;
-    };
-
     const auto Traverse = [&](std::list<Front>::iterator it) -> std::list<Front>::iterator
     {
+        HLOG("Traversed %s", WCSTR(it->pBB->GetName()));
+
         traversed.insert(it->pBB);
         Order.push_back(it->pBB);
  
@@ -81,7 +95,7 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
 
         for (auto it = frontier.begin(); it != frontier.end();)
         {
-            if (AncestorsTraversed(it->pBB))
+            if (AncestorsTraversed(traversed, it->pBB))
             {
                 it = Traverse(it);
             }
