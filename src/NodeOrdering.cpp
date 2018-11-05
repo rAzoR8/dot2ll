@@ -204,7 +204,22 @@ NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit)
 
         if (pNext == nullptr)
         {
-            pNext = ToVisit.front();
+            if (ToVisit.size() > 1)
+            {
+                // TODO: pick successor of A which is not the IPDOM
+                for (BasicBlock* BB : ToVisit)
+                {
+                    if (BB->IsSink() == false)
+                    {
+                        pNext = BB;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                pNext = ToVisit.front();
+            }
         }
 
         A = pNext;
