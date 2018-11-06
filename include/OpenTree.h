@@ -105,7 +105,7 @@ public:
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;
 
-    void Prepare(NodeOrder& _Ordering, const bool _bPutVirtualFront);
+    void Initialize(NodeOrder& _Ordering, const bool _bPutVirtualFront);
 
     void AddNode(OpenTreeNode* _pNode);
 

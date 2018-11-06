@@ -102,7 +102,7 @@
       <Filter>Header Files\DotParser</Filter>
     </ClInclude>
     <ClInclude Include="CheckReconvergence.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

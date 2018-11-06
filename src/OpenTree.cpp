@@ -18,7 +18,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront)
 
     NodeOrder Ordering(_Ordering);
 
-    Prepare(Ordering, _bPutVirtualFront);
+    Initialize(Ordering, _bPutVirtualFront);
 
     // root
     DumpDotToFile("0_step.dot");
@@ -173,8 +173,9 @@ OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
     return nullptr;
 }
 
-void OpenTree::Prepare(NodeOrder& _Ordering, const bool _bPutVirtualFront)
+void OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPutVirtualFront)
 {
+    // TODO: only execute if nodes in ordering are not reconverging already
     NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront);
 
     // reserve enough space for root & flow blocks
