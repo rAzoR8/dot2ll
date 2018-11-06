@@ -17,7 +17,7 @@ bool CheckReconvergence::IsReconverging(const Function& _Func, const bool _bLog,
 
     for (const BasicBlock& BB : _Func.GetCFG())
     {
-        if (BB.IsDivergent())
+        if (BB.IsDivergent() /*&& BB.IsVirtual() == false*/)
         {
             const Instruction* pTerminator = BB.GetTerminator();
             HASSERT(pTerminator->Is(kInstruction_BranchCond), "Invalid branch instruction");

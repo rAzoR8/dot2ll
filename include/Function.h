@@ -50,7 +50,7 @@ public:
     const Instruction* GetReturnType() const { return m_pReturnType; };
 
     // if multiple sinks exist, create a new unique one, rerout sinks to virtual exit
-    void EnforceUniqueExitPoint();
+    bool EnforceUniqueExitPoint();
     void Finalize(); // connects virtual entry point with CFG
 
     // only works if finalize has been called before!

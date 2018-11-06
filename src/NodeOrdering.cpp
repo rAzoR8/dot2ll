@@ -275,6 +275,8 @@ void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
             if (pos1 <= pos && pos2 <= pos)
             {
                 BasicBlock* pVirtual = pBB->GetCFG()->NewNode(pBB->GetName() + "_VIRTUAL");
+                //pVirtual->SetVirtual(true);
+
                 Instruction* pTerminator = pBB->GetTerminator(); // this is a BranchCond instr
 
                 // get branch cond info

@@ -24,6 +24,9 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
     {
         Function func = Dot2CFG::Convert(dotin);
 
+        if (func.EnforceUniqueExitPoint() == false)
+            return;
+
         const bool bInputReconverging = CheckReconvergence::IsReconverging(func, !_bReconv, true);
 
         HLOG("Reconverging %s '%s' [Order: %s Reconv: %s]", WCSTR(_sDotFile), WCSTR(dotin.GetName()), WCSTR(OrderNames[_kOrder]), bInputReconverging ? L"true" : L"false");
@@ -33,8 +36,6 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
         if (_bReconv)
         {
             sOutName += "_reconv";
-
-            func.EnforceUniqueExitPoint();
 
             NodeOrder InputOrdering;
 
@@ -61,14 +62,13 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
 
             // reconverge using InputOrdering
             OpenTree OT(true ,_sOutPath.string() + "/");
-            OT.Process(InputOrdering, _bPutVirtualFront);
+            const bool bChanged = OT.Process(InputOrdering, _bPutVirtualFront);
 
             func.Finalize();
 
             const bool bOutputReconverging = CheckReconvergence::IsReconverging(func, true);
             hlx::Logger::Instance()->Log(bOutputReconverging ? hlx::kMessageType_Info : hlx::kMessageType_Error, WFUNC, WFILE, __LINE__, L"Function %s reconverging!\n", bOutputReconverging ? L"is" : L"is NOT");
-            assert(bOutputReconverging);
-
+            
             std::ofstream dotout(_sOutPath / (sOutName + ".dot"));
 
             if (dotout.is_open())
@@ -77,6 +77,12 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
 
                 dotout.close();
             }
+
+            assert(bOutputReconverging);
+
+            // if the input was already reconverging, the algo should not change the CFG.
+            // (but in the case where virtual nodes are added to the ordering, this does not hold in the current definition and implemention)
+            assert(bInputReconverging ? !bChanged : bChanged);
         }
 
         std::ofstream ll(_sOutPath / (sOutName + ".ll"));

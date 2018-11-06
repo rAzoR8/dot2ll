@@ -36,14 +36,20 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sUn
         BasicBlock* pTrueSucc = nullptr;
         BasicBlock* pFalseSucc = nullptr;
 
-        if (node.GetSuccessors().size() > 0u)
+        const size_t uSuccessors = node.GetSuccessors().size();
+        if (uSuccessors > 0u)
         {
             pNode->SetDivergent(node.GetSuccessors().front().Attributes.HasValue(_sUniformAttribKey, _sUniformAttribValue) == false);
             pTrueSucc = AddNode(*node.GetSuccessors().front().pNode);
         }
-        if (node.GetSuccessors().size() > 1u)
+        if (uSuccessors == 2u)
         {
             pFalseSucc = AddNode(*node.GetSuccessors()[1].pNode);
+        }
+        else if(uSuccessors > 2u)
+        {
+            HERROR("Too many successors for node %s", WCSTR(node.GetName()));
+            return {};
         }
 
         if (pTrueSucc != nullptr && pFalseSucc != nullptr)

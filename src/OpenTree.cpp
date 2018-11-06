@@ -12,8 +12,10 @@ void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruc
     Conditions[_pTarget][_pSource] = _pCondition;
 }
 
-void OpenTree::Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront)
+bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront)
 {
+    bool bRerouted = false;
+
     NodeOrder Ordering(_Ordering);
 
     Prepare(Ordering, _bPutVirtualFront);
@@ -29,20 +31,24 @@ void OpenTree::Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront)
 
         HLOG(">>> Processing %s", WCSTR(pNode->sName));
 
-        // Let P be the set of armed predecessors of B (non-uniform node with 1 open edge)
-        std::vector<OpenTreeNode*> P = FilterNodes(pNode->Incoming, Armed, *this);
-
-        // If P is non-empty
-        if (P.empty() == false)
+        //if (B->IsVirtual() == false)
         {
-            // Let S be the set of subtrees rooted at nodes in P
-            OpenSubTreeUnion S(P);
+            // Let P be the set of armed predecessors of B (non-uniform node with 1 open edge)
+            std::vector<OpenTreeNode*> P = FilterNodes(pNode->Incoming, Armed, *this);
 
-            // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
-            if (S.HasOutgoingNotLeadingTo(B))
+            // If P is non-empty
+            if (P.empty() == false)
             {
-                Reroute(S);
-                DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
+                // Let S be the set of subtrees rooted at nodes in P
+                OpenSubTreeUnion S(P);
+
+                // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
+                if (S.HasOutgoingNotLeadingTo(B))
+                {
+                    Reroute(S);
+                    bRerouted = true;
+                    DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
+                }
             }
         }
         
@@ -69,10 +75,13 @@ void OpenTree::Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront)
             if (S.HasMultiRootsOrOutgoing())
             {
                 Reroute(S);
+                bRerouted = true;
                 DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
             }
         }
     }
+
+    return bRerouted;
 }
 
 void OpenTree::SerializeDotGraph(std::ostream& _Out) const

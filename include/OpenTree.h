@@ -30,6 +30,7 @@ struct OpenTreeNode
     BasicBlock* pBB = nullptr;
     bool bVisited = false; // has been added to the OT
     bool bFlow = false; // is a flowblock
+    //bool bVirtual = false;
 
     struct Flow
     {
@@ -95,7 +96,8 @@ public:
         m_sDebugOutputPath(_sDebugOutPath), m_bRemoveClosed(_bRemoveClosed) {};
     ~OpenTree() {};
 
-    void Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront = false);
+    // returns true if flow was rerouted
+    bool Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront = false);
 
     void SerializeDotGraph(std::ostream& _Out) const;
     void DumpDotToFile(const std::string& _sPath) const;

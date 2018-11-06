@@ -65,7 +65,7 @@ Instruction* Function::AddParameter(const Instruction* _pType, const InstrId _uI
     return pParam;
 }
 
-void Function::EnforceUniqueExitPoint()
+bool Function::EnforceUniqueExitPoint()
 {
     bool bSink = false;
 
@@ -99,6 +99,13 @@ void Function::EnforceUniqueExitPoint()
             }
         }
     }
+
+    if (bSink == false)
+    {
+        HERROR("No unique exite block found (possible cycle) in function %s", WCSTR(m_sName));    
+    }
+
+    return bSink;
 }
 
 // function has no effect if it has already been finalized
@@ -165,7 +172,7 @@ BasicBlock* Function::GetExitBlock()
     return const_cast<BasicBlock*>(const_cast<const Function*>(this)->GetExitBlock());
 }
 
-const BasicBlock * Function::GetExitBlock() const
+const BasicBlock* Function::GetExitBlock() const
 {
     if (m_pUniqueSink != nullptr)
     {
