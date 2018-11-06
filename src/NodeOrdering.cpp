@@ -1,7 +1,36 @@
 #include "NodeOrdering.h"
 #include "DominatorTree.h"
 #include "CFGUtils.h"
+#include "hlx/include/StringHelpers.h"
+
 #include <deque>
+#include <unordered_set>
+
+NodeOrder NodeOrdering::ComputeCustomOrder(ControlFlowGraph& _CFG, const std::string& _sCustomOrdering)
+{
+    NodeOrder Order;
+
+    for (const auto& sName : hlx::split(_sCustomOrdering, ','))
+    {
+        BasicBlock* pBB = _CFG.FindNode(sName);
+        if (pBB != nullptr)
+        {
+            Order.push_back(pBB);
+        }
+        else
+        {
+            HERROR("Block %s not found in CFG", WCSTR(sName));
+            break;
+        }
+    }
+
+    if (Order.size() != _CFG.GetNodes().size())
+    {
+        HERROR("Incomplete custom ordering %s for function with %d basic blocks", WCSTR(_sCustomOrdering), (uint32_t)_CFG.GetNodes().size());
+    }
+
+    return Order;
+}
 
 NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
 {
@@ -235,7 +264,7 @@ void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
         BasicBlock* pBB = *it;
         auto pos = std::distance(_Order.begin(), it);
 
-        if (pBB->IsDivergent() && pBB->GetSuccesors().size() == 2u)
+        if (pBB->IsDivergent())
         {
             auto succ1 = std::find(_Order.begin(), _Order.end(), pBB->GetSuccesors()[0]);
             auto succ2 = std::find(_Order.begin(), _Order.end(), pBB->GetSuccesors()[1]);

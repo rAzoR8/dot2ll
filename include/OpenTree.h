@@ -1,6 +1,7 @@
 #pragma once
 
 #include "NodeOrdering.h"
+
 #include <unordered_map>
 #include <unordered_set>
 
@@ -94,7 +95,7 @@ public:
         m_sDebugOutputPath(_sDebugOutPath), m_bRemoveClosed(_bRemoveClosed) {};
     ~OpenTree() {};
 
-    void Process(const NodeOrder& _Ordering);
+    void Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront = false);
 
     void SerializeDotGraph(std::ostream& _Out) const;
     void DumpDotToFile(const std::string& _sPath) const;
@@ -102,7 +103,7 @@ public:
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;
 
-    void Prepare(NodeOrder& _Ordering);
+    void Prepare(NodeOrder& _Ordering, const bool _bPutVirtualFront);
 
     void AddNode(OpenTreeNode* _pNode);
 

@@ -14,7 +14,7 @@ static const std::wstring OrderNames[] =
     L"DepthFirstDom",
 };
 
-void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, const bool _bReconv = false, const std::filesystem::path& _sOutPath = {})
+void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront = false, const std::string& _sCustomOrder = {})
 {
     DotGraph dotin = DotParser::ParseFromFile(_sDotFile);
 
@@ -46,6 +46,10 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
                 InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
                 sOutName += "_bf";
                 break;
+            case NodeOrdering::Custom:
+                InputOrdering = NodeOrdering::ComputeCustomOrder(func.GetCFG(), _sCustomOrder);
+                sOutName += "_custom";
+                break;
             case NodeOrdering::DepthFirstDom:
             default:
                 InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
@@ -55,7 +59,7 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
 
             // reconverge using InputOrdering
             OpenTree OT(true ,_sOutPath.string() + "/");
-            OT.Process(InputOrdering);
+            OT.Process(InputOrdering, _bPutVirtualFront);
 
             func.Finalize();
 
@@ -89,17 +93,18 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
 
 int main(int argc, char* argv[])
 {
-    hlx::Logger::Instance()->WriteToStream(&std::wcout);
-
-    std::filesystem::path InputPath;
-    std::filesystem::path OutPath;
-
     if (argc < 2)
         return 1;
 
     NodeOrdering::Type kOrder = NodeOrdering::DepthFirstDom;
+    hlx::Logger::Instance()->WriteToStream(&std::wcout);
+
+    std::filesystem::path InputPath;
+    std::filesystem::path OutPath;
+    std::string sCustomOrder;
 
     bool bReconv = false;
+    bool bVirtualFront = false;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -125,10 +130,18 @@ int main(int argc, char* argv[])
         {
             kOrder = NodeOrdering::All;
         }
+        else if (token == "-virtualfront")
+        {
+            bVirtualFront = true;
+        }
+        else if (token == "-custom" && (i + 1) < argc)
+        {
+            kOrder = NodeOrdering::Custom;
+            sCustomOrder = argv[++i];
+        }
         else if (token == "-out" && (i+1) < argc)
         {
-            OutPath = argv[i+1];
-            i++;
+            OutPath = argv[++i];
         }
         else
         {
@@ -140,7 +153,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    const auto Reconv = [&](NodeOrdering::Type _kOrder)
+    const auto Reconv = [&](NodeOrdering::Type _kOrder, const std::string& _sCustomOrder = "")
     {
         if (std::filesystem::is_directory(InputPath))
         {
@@ -148,13 +161,13 @@ int main(int argc, char* argv[])
             {
                 if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
                 {
-                    dot2ll(Entry.path().string(), _kOrder, bReconv, OutPath);
+                    dot2ll(Entry.path().string(), _kOrder, bReconv, OutPath, bVirtualFront);
                 }
             }
         }
         else
         {
-            dot2ll(InputPath.string(), _kOrder, bReconv, OutPath);
+            dot2ll(InputPath.string(), _kOrder, bReconv, OutPath, bVirtualFront);
         }
     };
 
@@ -167,7 +180,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        Reconv(kOrder);
+        Reconv(kOrder, sCustomOrder);
     }
 
     return 0;

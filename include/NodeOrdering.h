@@ -1,13 +1,13 @@
 #pragma once
 
-#include "BasicBlock.h"
-#include <unordered_set>
 #include <list>
 
-using NodeOrder = std::list<BasicBlock*>;
+#include "BasicBlock.h"
 
-// forward decl
-class DominatorTree;
+// forward decls:
+class ControlFlowGraph;
+
+using NodeOrder = std::list<BasicBlock*>;
 
 class NodeOrdering
 {
@@ -17,11 +17,15 @@ public:
         DepthFirst = 0,
         BreadthFirst = 1,
         DepthFirstDom = 2,
-        All
+        All,
+        Custom
     };
 
     NodeOrdering() {};
     ~NodeOrdering() {};
+
+    // _sCustomOrdering list of comma separated block names: A,B,C,D
+    static NodeOrder ComputeCustomOrder(ControlFlowGraph& _CFG, const std::string& _sCustomOrdering);
 
     static NodeOrder ComputeDepthFirst(BasicBlock* _pRoot);
 

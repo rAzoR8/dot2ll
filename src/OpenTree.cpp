@@ -12,11 +12,11 @@ void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruc
     Conditions[_pTarget][_pSource] = _pCondition;
 }
 
-void OpenTree::Process(const NodeOrder& _Ordering)
+void OpenTree::Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront)
 {
     NodeOrder Ordering(_Ordering);
 
-    Prepare(Ordering);
+    Prepare(Ordering, _bPutVirtualFront);
 
     // root
     DumpDotToFile("0_step.dot");
@@ -164,9 +164,9 @@ OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
     return nullptr;
 }
 
-void OpenTree::Prepare(NodeOrder& _Ordering)
+void OpenTree::Prepare(NodeOrder& _Ordering, const bool _bPutVirtualFront)
 {
-    NodeOrdering::PrepareOrdering(_Ordering);
+    NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront);
 
     // reserve enough space for root & flow blocks
     m_Nodes.reserve(_Ordering.size() * 2u);
