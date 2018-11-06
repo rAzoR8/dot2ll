@@ -101,7 +101,7 @@
     <ClInclude Include="..\dotparse\include\DotWriter.h">
       <Filter>Header Files\DotParser</Filter>
     </ClInclude>
-    <ClInclude Include="CheckReconvergence.h">
+    <ClInclude Include="include\CheckReconvergence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

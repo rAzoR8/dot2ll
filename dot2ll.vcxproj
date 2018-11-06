@@ -142,10 +142,10 @@
     <ClInclude Include="..\dotparse\include\DotNode.h" />
     <ClInclude Include="..\dotparse\include\DotParser.h" />
     <ClInclude Include="..\dotparse\include\DotWriter.h" />
-    <ClInclude Include="CheckReconvergence.h" />
     <ClInclude Include="include\BasicBlock.h" />
     <ClInclude Include="include\CFG2Dot.h" />
     <ClInclude Include="include\CFGUtils.h" />
+    <ClInclude Include="include\CheckReconvergence.h" />
     <ClInclude Include="include\ControlFlowGraph.h" />
     <ClInclude Include="include\DominatorTree.h" />
     <ClInclude Include="include\Dot2CFG.h" />

@@ -27,7 +27,7 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
         if (func.EnforceUniqueExitPoint() == false)
             return;
 
-        const bool bInputReconverging = CheckReconvergence::IsReconverging(func, !_bReconv, true);
+        const bool bInputReconverging = CheckReconvergence::IsReconverging(func);
 
         HLOG("Reconverging %s '%s' [Order: %s Reconv: %s]", WCSTR(_sDotFile), WCSTR(dotin.GetName()), WCSTR(OrderNames[_kOrder]), bInputReconverging ? L"true" : L"false");
 

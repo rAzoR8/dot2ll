@@ -1,6 +1,7 @@
 #include "OpenTree.h"
 #include "ControlFlowGraph.h"
 #include "Function.h"
+#include "CheckReconvergence.h"
 #include <deque>
 
 void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruction* _pCondition)
@@ -175,8 +176,11 @@ OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
 
 void OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPutVirtualFront)
 {
-    // TODO: only execute if nodes in ordering are not reconverging already
-    NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront);
+    // only execute if nodes in ordering are not reconverging already
+    if (CheckReconvergence::IsReconverging(_Ordering) == false)
+    {
+        NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront);
+    }
 
     // reserve enough space for root & flow blocks
     m_Nodes.reserve(_Ordering.size() * 2u);
