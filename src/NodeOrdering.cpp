@@ -296,9 +296,8 @@ void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
                 }
                 else
                 {
-                    // take the succuessor occuring first in the ordering
-                    auto pred = pos1 < pos2 ? std::prev(succ1) : std::prev(succ2);       
-                    _Order.insert(pred, pVirtual);
+                    // take the succuessor occuring first in the ordering  
+                    _Order.insert(pos1 < pos2 ? succ1 : succ2, pVirtual);
                 }
             }
         }
