@@ -13,13 +13,13 @@ void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruc
     Conditions[_pTarget][_pSource] = _pCondition;
 }
 
-bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPutVirtualFront)
+bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront)
 {
     bool bRerouted = false;
 
     NodeOrder Ordering(_Ordering);
 
-    Initialize(Ordering, _bPutVirtualFront);
+    Initialize(Ordering, _bPrepareIfReconv, _bPutVirtualFront);
 
     // root
     DumpDotToFile("0_step.dot");
@@ -174,10 +174,10 @@ OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
     return nullptr;
 }
 
-void OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPutVirtualFront)
+void OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront)
 {
     // only execute if nodes in ordering are not reconverging already
-    if (CheckReconvergence::IsReconverging(_Ordering) == false)
+    if (_bPrepareIfReconv || CheckReconvergence::IsReconverging(_Ordering) == false)
     {
         NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront);
     }
