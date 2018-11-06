@@ -24,7 +24,7 @@ NodeOrder NodeOrdering::ComputeCustomOrder(ControlFlowGraph& _CFG, const std::st
         }
     }
 
-    if (Order.size() != _CFG.GetNodes().size())
+    if (Order.size() != _CFG.GetNodes().size() - 1)
     {
         HERROR("Incomplete custom ordering %s for function with %d basic blocks", WCSTR(_sCustomOrdering), (uint32_t)_CFG.GetNodes().size());
     }

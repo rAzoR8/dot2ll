@@ -12,6 +12,8 @@ static const std::wstring OrderNames[] =
     L"DepthFirst",
     L"BreadthFirst",
     L"DepthFirstDom",
+    L"All",
+    L"Custom"
 };
 
 void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront = false, const std::string& _sCustomOrder = {})
@@ -153,7 +155,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    const auto Reconv = [&](NodeOrdering::Type _kOrder, const std::string& _sCustomOrder = "")
+    const auto Reconv = [&](NodeOrdering::Type _kOrder)
     {
         if (std::filesystem::is_directory(InputPath))
         {
@@ -161,13 +163,13 @@ int main(int argc, char* argv[])
             {
                 if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
                 {
-                    dot2ll(Entry.path().string(), _kOrder, bReconv, OutPath, bVirtualFront);
+                    dot2ll(Entry.path().string(), _kOrder, bReconv, OutPath, bVirtualFront, sCustomOrder);
                 }
             }
         }
         else
         {
-            dot2ll(InputPath.string(), _kOrder, bReconv, OutPath, bVirtualFront);
+            dot2ll(InputPath.string(), _kOrder, bReconv, OutPath, bVirtualFront, sCustomOrder);
         }
     };
 
@@ -180,7 +182,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        Reconv(kOrder, sCustomOrder);
+        Reconv(kOrder);
     }
 
     return 0;
