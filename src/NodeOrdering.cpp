@@ -292,11 +292,14 @@ void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
 
                 if (_bPutVirtualFront)
                 {
+                    HLOG("Inserting %s before %s in ordering", WCSTR(pVirtual->GetName()), WCSTR(_Order.front()->GetName()));
                     _Order.push_front(pVirtual);
                 }
                 else
                 {
                     // take the succuessor occuring first in the ordering  
+                    auto it = pos1 < pos2 ? succ1 : succ2;
+                    HLOG("Inserting %s before %s in ordering", WCSTR(pVirtual->GetName()), WCSTR((*it)->GetName()));
                     _Order.insert(pos1 < pos2 ? succ1 : succ2, pVirtual);
                 }
             }
