@@ -600,7 +600,7 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor)
             else if (FinalOutgoing.size() == 1u)
             {
                 pBB->AddInstruction()->Branch(FinalOutgoing[0].pTarget->pBB);
-                HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(Outgoing[0].pTarget->sName));
+                HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(FinalOutgoing[0].pTarget->sName));
             }
         }
 
