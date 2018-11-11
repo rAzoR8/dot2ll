@@ -82,6 +82,8 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
         }
     }
 
+    HASSERT(m_pRoot->Children.empty(), "Unresolved nodes");
+
     return bRerouted;
 }
 
@@ -724,15 +726,13 @@ const bool OpenSubTreeUnion::HasOutgoingNotLeadingTo(BasicBlock* _pBB) const
 
 const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
 {
+    // TODO: check if roots have open outgoing edges, otherwise theres nothing to reroute
     if (m_Roots.size() > 1u)
         return true;
 
     OpenTreeNode* pFirstOut = nullptr;
     for (OpenTreeNode* pNode : m_Nodes)
     {
-        // LLVM code checks for UNVISITED pNode->Visited() == false, why?
-        // because visited also means the node has been rerouted eventually?
-
         for (const auto& Out : pNode->Outgoing)
         {
             if (Out.pTarget->bVisited == false)
