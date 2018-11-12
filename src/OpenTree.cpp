@@ -13,7 +13,7 @@ void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruc
     Conditions[_pTarget][_pSource] = _pCondition;
 }
 
-bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront)
+bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront, const bool _bCloseBeforeCond2)
 {
     bool bRerouted = false;
 
@@ -57,6 +57,15 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
 
         DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
 
+        if (_bCloseBeforeCond2)
+        {
+            // close B -> visited Succ 
+            for (OpenTreeNode* pSucc : FilterNodes(pNode->Outgoing, Visited, *this))
+            {
+                pNode->Close(pSucc);
+            }
+        }
+
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
         std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, Visited, *this);
 
@@ -66,10 +75,13 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
             // Let S be the set of subtrees routed at nodes in N.
             OpenSubTreeUnion S(N);
 
-            // close B -> visited Succ (needs to be changed if the filter above changes)
-            for (OpenTreeNode* pSucc : N)
+            if (!_bCloseBeforeCond2)
             {
-                pNode->Close(pSucc);                
+                // close B -> visited Succ 
+                for (OpenTreeNode* pSucc : N)
+                {
+                    pNode->Close(pSucc);
+                }
             }
 
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
@@ -80,6 +92,11 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
                 DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
             }
         }
+    }
+
+    for (OpenTreeNode& Node : m_Nodes)
+    {
+        HASSERT(Node.Incoming.size() + Node.Outgoing.size() + Node.FinalOutgoing.size() == 0, "%s has remaining open edges", WCSTR(Node.sName));
     }
 
     HASSERT(m_pRoot->Children.empty(), "Unresolved nodes");
@@ -242,7 +259,7 @@ void OpenTree::AddNode(OpenTreeNode* _pNode)
     // close edge from Pred to BB
     // is this the right point to close the edge? LLVM code closes edges after adding for Predecessors and then for Successors.
     // this changes the visited preds, so after interleaving makes sense
-    for (OpenTreeNode* pPred : Preds) // TODO: m_pRoot case is not in the Preds (need to add?)
+    for (OpenTreeNode* pPred : Preds)
     {
         pPred->Close(_pNode);
     }
@@ -728,7 +745,15 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
 {
     // TODO: check if roots have open outgoing edges, otherwise theres nothing to reroute
     if (m_Roots.size() > 1u)
-        return true;
+    {
+        for (OpenTreeNode* pNode : m_Nodes)
+        {
+            if (pNode->Outgoing.empty() == false)
+                return true;
+        }
+
+        HLOG("Subtree containing %d roots without open outoing edges", static_cast<uint32_t>(m_Roots.size()));
+    }
 
     OpenTreeNode* pFirstOut = nullptr;
     for (OpenTreeNode* pNode : m_Nodes)

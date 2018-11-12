@@ -16,7 +16,7 @@ static const std::wstring OrderNames[] =
     L"Custom"
 };
 
-void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront = false, const std::string& _sCustomOrder = {})
+void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront, const bool _bCloseSuccAfterAddNode, const std::string& _sCustomOrder)
 {
     DotGraph dotin = DotParser::ParseFromFile(_sDotFile);
 
@@ -69,7 +69,7 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
 
         // reconverge using InputOrdering
         OpenTree OT(true, _sOutPath.string() + "/");
-        const bool bChanged = OT.Process(InputOrdering, bPrepareIfReconv, _bPutVirtualFront);
+        const bool bChanged = OT.Process(InputOrdering, bPrepareIfReconv, _bPutVirtualFront, _bCloseSuccAfterAddNode);
 
         func.Finalize();
 
@@ -119,6 +119,7 @@ int main(int argc, char* argv[])
 
     bool bReconv = false;
     bool bVirtualFront = false;
+    bool bCloseSuccAfterAddNode = false;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -147,6 +148,10 @@ int main(int argc, char* argv[])
         else if (token == "-virtualfront")
         {
             bVirtualFront = true;
+        }
+        else if (token == "-closeafteradd")
+        {
+            bCloseSuccAfterAddNode = true;
         }
         else if (token == "-custom" && (i + 1) < argc)
         {
@@ -180,13 +185,13 @@ int main(int argc, char* argv[])
             {
                 if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
                 {
-                    dot2ll(Entry.path().string(), _kOrder, bReconv, OutputPath, bVirtualFront, sCustomOrder);
+                    dot2ll(Entry.path().string(), _kOrder, bReconv, OutputPath, bVirtualFront, bCloseSuccAfterAddNode, sCustomOrder);
                 }
             }
         }
         else
         {
-            dot2ll(InputPath.string(), _kOrder, bReconv, OutputPath, bVirtualFront, sCustomOrder);
+            dot2ll(InputPath.string(), _kOrder, bReconv, OutputPath, bVirtualFront, bCloseSuccAfterAddNode, sCustomOrder);
         }
     };
 

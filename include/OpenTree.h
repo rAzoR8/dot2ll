@@ -97,7 +97,7 @@ public:
     ~OpenTree() {};
 
     // returns true if flow was rerouted
-    bool Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront = false);
+    bool Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront = false, const bool _bCloseBeforeCond2 = false);
 
     void SerializeDotGraph(std::ostream& _Out) const;
     void DumpDotToFile(const std::string& _sPath) const;
