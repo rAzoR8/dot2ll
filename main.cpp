@@ -28,7 +28,7 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
 
     Function func = Dot2CFG::Convert(dotin);
 
-    if (func.EnforceUniqueExitPoint() == false)
+    if (func.EnforceUniqueEntryPoint() == false || func.EnforceUniqueExitPoint() == false)
         return;
 
     const bool bInputReconverging = CheckReconvergence::IsReconverging(func);

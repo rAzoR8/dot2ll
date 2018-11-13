@@ -108,6 +108,39 @@ bool Function::EnforceUniqueExitPoint()
     return bSink;
 }
 
+bool Function::EnforceUniqueEntryPoint()
+{
+    // no user code
+    if (m_CFG.GetNodes().size() < 2)
+        return false;
+
+    std::vector<BasicBlock*> Entries;
+    for (auto it = m_CFG.begin() + 1, end = m_CFG.end(); it != end; ++it)
+    {
+        if (it->IsSource())
+        {
+            Entries.push_back(&(*it));
+        }
+    }
+
+    // no source node (due to loop at entry)
+    if (Entries.empty())
+    {
+        // promote first user block to source
+        (m_CFG.begin() + 1)->SetSource(true);
+    }
+    else if (Entries.size() > 1u)
+    {
+        // multiple sources, use the first one, degrade others
+        for (auto it = Entries.begin() + 1, end = Entries.end(); it != end; ++it)
+        {
+            (*it)->SetSource(false);
+        }
+    }
+
+    return true;
+}
+
 // function has no effect if it has already been finalized
 void Function::Finalize()
 {
@@ -130,6 +163,7 @@ void Function::Finalize()
     if (m_pConstantTypeBlock->GetTerminator() == nullptr)
     {
         BasicBlock* pSource = GetEntryBlock();
+        HASSERT(pSource != nullptr, "No valid/unique entry point found!");
         m_pConstantTypeBlock->AddInstruction()->Branch(pSource);
     }
 }
@@ -162,6 +196,11 @@ const BasicBlock* Function::GetEntryBlock() const
         {
             return &(*it);
         }
+    }
+
+    if (m_CFG.GetNodes().size() > 1)
+    {
+        return &*(m_CFG.begin() + 1);
     }
 
     return nullptr;

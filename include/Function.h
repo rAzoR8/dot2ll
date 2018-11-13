@@ -49,8 +49,11 @@ public:
     const std::vector<Instruction*>& GetParameters() const { return m_Parameters; }
     const Instruction* GetReturnType() const { return m_pReturnType; };
 
-    // if multiple sinks exist, create a new unique one, rerout sinks to virtual exit
+    // if multiple sinks exist, create a new unique one, reroute sinks to virtual exit.
+    // returns false if no unique exit point could be created (infinite loop)
     bool EnforceUniqueExitPoint();
+    bool EnforceUniqueEntryPoint();
+
     void Finalize(); // connects virtual entry point with CFG
 
     // only works if finalize has been called before!

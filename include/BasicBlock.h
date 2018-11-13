@@ -49,17 +49,21 @@ public:
     typename Instructions::const_iterator end() const noexcept { return m_Instructions.end(); }
 
     const std::string& GetName() const { return m_sName; }
-
-    const bool IsSource() const { return m_bSource; }
-    const bool IsSink() const { return m_bSink; }
-    const bool IsVirtual() const { return m_bVirtual; }
-
     const InstrId& GetIdentifier() const { return m_uIdentifier; }
+    
+    const bool IsSource() const { return m_bSource; }
+    void SetSource(const bool _bSource = true) { m_bSource = _bSource;}
 
-    void SetDivergent(const bool _bDivergent) { m_bDivergent = _bDivergent; }
+    const bool IsSink() const { return m_bSink; }
+    void SetSink(const bool _bSink = true) { m_bSink = _bSink; }
+
+    const bool IsVirtual() const { return m_bVirtual; }
+    void SetVirtual(const bool _bVirtual = true) { m_bVirtual = _bVirtual; }
+
+    void SetDivergent(const bool _bDivergent = true) { m_bDivergent = _bDivergent; }
     const bool IsDivergent() const { return m_bDivergent && m_Successors.size() > 1u; }
     const bool GetDivergenceQualifier() const { return m_bDivergent; }
-    void SetVirtual(const bool _bVirtual) { m_bVirtual = _bVirtual; }
+
 private:
     const InstrId m_uIdentifier;
 
