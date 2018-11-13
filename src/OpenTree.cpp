@@ -621,6 +621,8 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor)
                 pBB->AddInstruction()->Branch(FinalOutgoing[0].pTarget->pBB);
                 HLOG("Branch %s -> %s", WCSTR(pBB->GetName()), WCSTR(FinalOutgoing[0].pTarget->sName));
             }
+
+            FinalOutgoing.clear();
         }
 
         HLOG("Closing node %s", WCSTR(sName));
