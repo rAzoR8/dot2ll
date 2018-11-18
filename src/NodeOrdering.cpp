@@ -83,7 +83,7 @@ bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Traversed, BasicBlock*
     return AncestorsTraversed(checked, _Traversed, _pBB);
 };
 
-NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
+NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckAncestors)
 {
     NodeOrder Order;
 
@@ -122,7 +122,7 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
     {
         const size_t size = frontier.size();
 
-        for (auto it = frontier.begin(); it != frontier.end();)
+        for (auto it = frontier.begin(); _bCheckAncestors && it != frontier.end();)
         {
             if (AncestorsTraversed(traversed, it->pBB))
             {
@@ -140,7 +140,7 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot)
             // frontier is sorted already, take the first node that is not the sink!
             for (auto it = frontier.begin(), end = frontier.end(); it != end; ++it)
             {
-                if (it->pBB->IsSink() == false)
+                if (it->pBB->IsSink() == false || size == 1u)
                 {
                     Traverse(it);
                     break;

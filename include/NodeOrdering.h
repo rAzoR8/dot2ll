@@ -15,8 +15,9 @@ public:
     enum Type : uint32_t
     {
         DepthFirst = 0,
-        BreadthFirst = 1,
-        DepthFirstDom = 2,
+        DepthFirstDom,
+        BreadthFirst,
+        BreadthFirstDom,
         All,
         Custom
     };
@@ -29,7 +30,7 @@ public:
 
     static NodeOrder ComputeDepthFirst(BasicBlock* _pRoot);
 
-    static NodeOrder ComputeBreadthFirst(BasicBlock* _pRoot);
+    static NodeOrder ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckAncestors = false);
 
     static NodeOrder ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit);
 

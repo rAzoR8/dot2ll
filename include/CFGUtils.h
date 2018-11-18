@@ -87,20 +87,17 @@ struct CFGUtils
     template <class BB = BasicBlock>
     static void DepthFirst(BB* _pRoot, std::vector<BB*>& _OutVec, std::unordered_set<BB*>& _Set, const bool _bForward = true)
     {
-        if (_pRoot == nullptr)
+        if (_pRoot == nullptr || _Set.count(_pRoot) != 0u)
             return;
 
+        _Set.insert(_pRoot);
         _OutVec.push_back(_pRoot);
 
         const auto& Successors = _bForward ? _pRoot->GetSuccesors() : _pRoot->GetPredecessors();
 
         for (BB* pSucc : Successors)
         {
-            if (_Set.count(pSucc) == 0)
-            {
-                _Set.insert(pSucc);
-                DepthFirst(pSucc, _OutVec, _Set, _bForward);
-            }
+            DepthFirst(pSucc, _OutVec, _Set, _bForward);
         }
     }
 

@@ -10,8 +10,9 @@
 static const std::wstring OrderNames[] =
 {
     L"DepthFirst",
-    L"BreadthFirst",
     L"DepthFirstDom",
+    L"BreadthFirst",
+    L"BreadthFirstDom",
     L"All",
     L"Custom"
 };
@@ -50,8 +51,12 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
             sOutName += "_df";
             break;
         case NodeOrdering::BreadthFirst:
-            InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock());
+            InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock(), false);
             sOutName += "_bf";
+            break;
+        case NodeOrdering::BreadthFirstDom:
+            InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock(), true);
+            sOutName += "_bfd";
             break;
         case NodeOrdering::Custom:
             InputOrdering = NodeOrdering::ComputeCustomOrder(func.GetCFG(), _sCustomOrder);
@@ -140,6 +145,10 @@ int main(int argc, char* argv[])
         else if (token == "-breadthfirst")
         {
             kOrder = NodeOrdering::BreadthFirst;
+        }
+        else if (token == "-breadthfirstdom")
+        {
+            kOrder = NodeOrdering::BreadthFirstDom;
         }
         else if (token == "-all")
         {

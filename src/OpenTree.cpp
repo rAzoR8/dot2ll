@@ -85,7 +85,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
             }
 
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
-            if (S.HasMultiRootsOrOutgoing())
+            if (S.HasMultiRootsOrOutgoing()) // TODO: need to check for divergent target? no because B might be divergent itself
             {
                 Reroute(S);
                 bRerouted = true;
