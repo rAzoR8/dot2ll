@@ -13,15 +13,18 @@ static const std::wstring OrderNames[] =
     L"DepthFirstDom",
     L"BreadthFirst",
     L"BreadthFirstDom",
-    L"All",
     L"Custom"
 };
 
-void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront, const bool _bCloseSuccAfterAddNode, const std::string& _sCustomOrder)
+void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront, const bool _bCloseSuccAfterAddNode, const std::string& _sCustomOrder)
 {
+    const NodeOrdering::Type _kOrder{ 1u << _uOderIndex };
+
     DotGraph dotin = DotParser::ParseFromFile(_sDotFile);
 
-    if (dotin.GetNodes().empty())
+    const size_t uUserNodes = dotin.GetNodes().size();
+
+    if (uUserNodes == 0u)
     {
         HERROR("Failed to parse %s", WCSTR(_sDotFile));
         return;
@@ -34,7 +37,8 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
 
     const bool bInputReconverging = CheckReconvergence::IsReconverging(func);
 
-    HLOG("Reconverging %s '%s' [Order: %s Reconv: %s]", WCSTR(_sDotFile), WCSTR(dotin.GetName()), WCSTR(OrderNames[_kOrder]), bInputReconverging ? L"true" : L"false");
+    HLOG("Processing %s '%s' [Order: %s Reconv: %s]", WCSTR(_sDotFile), WCSTR(dotin.GetName()),
+        _kOrder == NodeOrdering::Custom ? WCSTR(_sCustomOrder) : WCSTR(OrderNames[_uOderIndex]), bInputReconverging ? L"true" : L"false");
 
     std::string sOutName = dotin.GetName();
 
@@ -67,6 +71,12 @@ void dot2ll(const std::string& _sDotFile, const NodeOrdering::Type _kOrder, cons
             InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
             sOutName += "_dfd";
             break;
+        }
+
+        if (InputOrdering.size() != uUserNodes)
+        {
+            HFATALD("Orderin is not a valid traversal of the input CFG!");
+            return;
         }
 
         // execute prepare pass even if input ordering is already reconverging (for debugging purpose)
@@ -115,7 +125,7 @@ int main(int argc, char* argv[])
     if (argc < 2)
         return 1;
 
-    NodeOrdering::Type kOrder = NodeOrdering::DepthFirstDom;
+    uint32_t kOrder = NodeOrdering::None;
     hlx::Logger::Instance()->WriteToStream(&std::wcout);
 
     std::filesystem::path InputPath;
@@ -136,23 +146,28 @@ int main(int argc, char* argv[])
         }
         else if (token == "-depthfirst")
         {
-            kOrder = NodeOrdering::DepthFirst;
+            kOrder |= NodeOrdering::DepthFirst;
         }
         else if (token == "-depthfirstdom")
         {
-            kOrder = NodeOrdering::DepthFirstDom;
+            kOrder |= NodeOrdering::DepthFirstDom;
         }
         else if (token == "-breadthfirst")
         {
-            kOrder = NodeOrdering::BreadthFirst;
+            kOrder |= NodeOrdering::BreadthFirst;
         }
         else if (token == "-breadthfirstdom")
         {
-            kOrder = NodeOrdering::BreadthFirstDom;
+            kOrder |= NodeOrdering::BreadthFirstDom;
         }
         else if (token == "-all")
         {
             kOrder = NodeOrdering::All;
+        }
+        else if (token == "-custom" && (i + 1) < argc)
+        {
+            kOrder |= NodeOrdering::Custom;
+            sCustomOrder = argv[++i];
         }
         else if (token == "-virtualfront")
         {
@@ -161,11 +176,6 @@ int main(int argc, char* argv[])
         else if (token == "-closeafteradd")
         {
             bCloseSuccAfterAddNode = true;
-        }
-        else if (token == "-custom" && (i + 1) < argc)
-        {
-            kOrder = NodeOrdering::Custom;
-            sCustomOrder = argv[++i];
         }
         else if (token == "-out" && (i + 1) < argc)
         {
@@ -186,7 +196,7 @@ int main(int argc, char* argv[])
         OutputPath = std::filesystem::is_directory(InputPath) ? InputPath : InputPath.parent_path();
     }
 
-    const auto Reconv = [&](NodeOrdering::Type _kOrder)
+    const auto Reconv = [&](const uint32_t _uOrder)
     {
         if (std::filesystem::is_directory(InputPath))
         {
@@ -194,26 +204,27 @@ int main(int argc, char* argv[])
             {
                 if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
                 {
-                    dot2ll(Entry.path().string(), _kOrder, bReconv, OutputPath, bVirtualFront, bCloseSuccAfterAddNode, sCustomOrder);
+                    dot2ll(Entry.path().string(), _uOrder, bReconv, OutputPath, bVirtualFront, bCloseSuccAfterAddNode, sCustomOrder);
                 }
             }
         }
         else
         {
-            dot2ll(InputPath.string(), _kOrder, bReconv, OutputPath, bVirtualFront, bCloseSuccAfterAddNode, sCustomOrder);
+            dot2ll(InputPath.string(), _uOrder, bReconv, OutputPath, bVirtualFront, bCloseSuccAfterAddNode, sCustomOrder);
         }
     };
 
-    if (kOrder == NodeOrdering::All)
+
+    for (uint32_t i = 0u; i < NodeOrdering::NumOf; ++i)
     {
-        for (uint32_t i = 0u; i < NodeOrdering::All; ++i)
-        {
-            Reconv(NodeOrdering::Type(i));
+        const auto kType = NodeOrdering::Type((1 << i));
+        if ((kOrder & kType) == kType)
+        {            
+            if (kType == NodeOrdering::Custom && sCustomOrder.empty())
+                continue;
+
+            Reconv(i);
         }
-    }
-    else
-    {
-        Reconv(kOrder);
     }
 
     return 0;

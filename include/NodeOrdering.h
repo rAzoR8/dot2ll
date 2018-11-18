@@ -14,12 +14,14 @@ class NodeOrdering
 public:
     enum Type : uint32_t
     {
-        DepthFirst = 0,
-        DepthFirstDom,
-        BreadthFirst,
-        BreadthFirstDom,
-        All,
-        Custom
+        None = 0,
+        DepthFirst = 1 << 0,
+        DepthFirstDom = 1 << 1,
+        BreadthFirst = 1 << 2,
+        BreadthFirstDom = 1 << 3,
+        Custom = 1 << 4,
+        NumOf = 5,
+        All = (Custom << 1) - 1        
     };
 
     NodeOrdering() {};
