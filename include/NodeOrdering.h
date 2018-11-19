@@ -42,7 +42,7 @@ public:
 
     // convert divergent nodes with 2 backwards edges to 1 backwards and two foward edges
     // returns true if virtual nodes were inserted
-    static bool PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront = false);
+    static bool PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront = false, const bool _bExitLast = true);
 
 private:
 

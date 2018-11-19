@@ -57,11 +57,11 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitL
     return Order;
 }
 
-NodeOrder NodeOrdering::ComputePostOrderTraversal(BasicBlock* _pExit, const bool _bReverse)
+NodeOrder NodeOrdering::ComputePostOrderTraversal(BasicBlock* _pRoot, const bool _bReverse)
 {
     NodeOrder Order;
     
-    for (BasicBlock* pBB : CFGUtils::DepthFirst(_pExit, false))
+    for (BasicBlock* pBB : CFGUtils::DepthFirst(_pRoot))
     {
         if (_bReverse)
         {
@@ -276,9 +276,18 @@ NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit)
     return Order;
 }
 
-bool NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront)
+bool NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront, const bool _bExitLast)
 {
     bool bChanged = false;
+   
+    if (_bExitLast && _Order.empty() == false && _Order.back()->IsSink() == false)
+    {
+        if (auto sink = std::find_if(_Order.begin(), _Order.end(), [](BasicBlock* pBB) {return pBB->IsSink(); }); sink != _Order.end())
+        {
+            std::iter_swap(sink,std::prev(_Order.end()));
+        }        
+    }
+
     for (auto it = _Order.begin(); it != _Order.end(); ++it)
     {
         BasicBlock* pBB = *it;
