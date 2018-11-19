@@ -30,7 +30,7 @@ public:
     // _sCustomOrdering list of comma separated block names: A,B,C,D
     static NodeOrder ComputeCustomOrder(ControlFlowGraph& _CFG, const std::string& _sCustomOrdering);
 
-    static NodeOrder ComputeDepthFirst(BasicBlock* _pRoot);
+    static NodeOrder ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitLast = false);
 
     static NodeOrder ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckAncestors = false);
 

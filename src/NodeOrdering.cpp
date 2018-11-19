@@ -32,14 +32,14 @@ NodeOrder NodeOrdering::ComputeCustomOrder(ControlFlowGraph& _CFG, const std::st
     return Order;
 }
 
-NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot)
+NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitLast)
 {
     NodeOrder Order;
     BasicBlock* pExit = nullptr;
 
     for (BasicBlock* pBB : CFGUtils::DepthFirst(_pRoot))
     {
-        if (pBB->IsSink())
+        if (pBB->IsSink() && _bExitLast)
         {
             pExit = pBB;
             continue;
@@ -276,6 +276,7 @@ bool NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
             if (pos1 <= pos && pos2 <= pos)
             {
                 BasicBlock* pVirtual = pBB->GetCFG()->NewNode(pBB->GetName() + "_VIRTUAL");
+                pVirtual->SetDivergent();
 
                 Instruction* pTerminator = pBB->GetTerminator(); // this is a BranchCond instr
 

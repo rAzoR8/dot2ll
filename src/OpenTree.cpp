@@ -211,7 +211,7 @@ bool OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, co
     HLOG("Node Order [%d]:", _Ordering.size());
     for (BasicBlock* B : _Ordering)
     {
-        HLOG("\t%s", WCSTR(B->GetName()));
+        HLOG("\t%s %s", WCSTR(B->GetName()), B->IsDivergent() ? L"" : L"Uniform");
         m_BBToNode[B] = &m_Nodes.emplace_back(this, B);
     }
 
