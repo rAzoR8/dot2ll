@@ -57,6 +57,18 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitL
     return Order;
 }
 
+NodeOrder NodeOrdering::ComputeReversePostorderTraversal(BasicBlock * _pExit)
+{
+    NodeOrder Order;
+    
+    for (BasicBlock* pBB : CFGUtils::DepthFirst(_pExit, false))
+    {
+        Order.push_front(pBB);
+    }
+
+    return Order;
+}
+
 bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Checked, std::unordered_set<BasicBlock*>& _Traversed, BasicBlock* _pBB)
 {
     for (BasicBlock* pAncestor : _pBB->GetPredecessors())

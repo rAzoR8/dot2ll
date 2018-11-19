@@ -106,7 +106,7 @@ struct CFGUtils
     {
         std::unordered_set<BB*> Set;
         std::vector<BB*> Vec;
-        DepthFirst(_pRoot, Vec, Set);
+        DepthFirst(_pRoot, Vec, Set, _bForward);
 
         return Vec;
     }

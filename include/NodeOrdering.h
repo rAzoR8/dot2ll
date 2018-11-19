@@ -19,8 +19,9 @@ public:
         DepthFirstDom = 1 << 1,
         BreadthFirst = 1 << 2,
         BreadthFirstDom = 1 << 3,
-        Custom = 1 << 4,
-        NumOf = 5,
+        RPOT = 1 << 4,
+        Custom = 1 << 5,
+        NumOf = 6,
         All = (Custom << 1) - 1        
     };
 
@@ -31,6 +32,8 @@ public:
     static NodeOrder ComputeCustomOrder(ControlFlowGraph& _CFG, const std::string& _sCustomOrdering);
 
     static NodeOrder ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitLast = false);
+
+    static NodeOrder ComputeReversePostorderTraversal(BasicBlock* _pExit);
 
     static NodeOrder ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckAncestors = false);
 
