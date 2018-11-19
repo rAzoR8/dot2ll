@@ -150,31 +150,31 @@ int main(int argc, char* argv[])
     {
         std::string token(argv[i]);
 
-        if (token == "-r")
+        if (token == "-reconverge" || token == "-r")
         {
             bReconv = true;
         }
-        else if (token == "-depthfirst")
+        else if (token == "-depthfirst" || token == "-df")
         {
             kOrder |= NodeOrdering::DepthFirst;
         }
-        else if (token == "-depthfirstdom")
+        else if (token == "-depthfirstdom" || token == "-dfd")
         {
             kOrder |= NodeOrdering::DepthFirstDom;
         }
-        else if (token == "-breadthfirst")
+        else if (token == "-breadthfirst" || token == "-bf")
         {
             kOrder |= NodeOrdering::BreadthFirst;
         }
-        else if (token == "-breadthfirstdom")
+        else if (token == "-breadthfirstdom" || token == "-bfd")
         {
             kOrder |= NodeOrdering::BreadthFirstDom;
         }
-        else if (token == "-postorder")
+        else if (token == "-postorder" || token == "-pot")
         {
             kOrder |= NodeOrdering::PostOrder;
         }
-        else if (token == "-reversepostorder")
+        else if (token == "-reversepostorder" || token == "-rpot")
         {
             kOrder |= NodeOrdering::ReversePostOrder;
         }
