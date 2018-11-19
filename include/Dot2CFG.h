@@ -60,15 +60,15 @@ inline Function Dot2CFG::Convert(const DotGraph& _Graph, const std::string& _sUn
             Instruction* pParam = func.AddParameter(pType);
             pParam->SetAlias("in_" + pNode->GetName());
 
-            if (pNode->IsDivergent())
-            {
-                pParam->Decorate({ kDecoration_Divergent });
-            }
-
             Instruction* pCondition = pNode->AddInstruction()->Equal(pParam, pConstNull);
             pCondition->SetAlias("cc_" + pNode->GetName());
 
             pNode->AddInstruction()->BranchCond(pCondition, pTrueSucc, pFalseSucc);
+
+            if (pNode->IsDivergent())
+            {
+                pParam->Decorate({ kDecoration_Divergent });
+            }
         }
         else if (pTrueSucc != nullptr)
         {

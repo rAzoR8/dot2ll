@@ -15,11 +15,11 @@ void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruc
 
 bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront, const bool _bCloseBeforeCond2)
 {
-    bool bRerouted = false;
+    bool bChanged = false;
 
     NodeOrder Ordering(_Ordering);
 
-    Initialize(Ordering, _bPrepareIfReconv, _bPutVirtualFront);
+    bChanged = Initialize(Ordering, _bPrepareIfReconv, _bPutVirtualFront);
 
     // root
     DumpDotToFile("0_step.dot");
@@ -47,7 +47,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
                 if (S.HasOutgoingNotLeadingTo(B))
                 {
                     Reroute(S);
-                    bRerouted = true;
+                    bChanged = true;
                     DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
                 }
             }
@@ -88,7 +88,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
             if (S.HasMultiRootsOrOutgoing()) // TODO: need to check for divergent target? no because B might be divergent itself
             {
                 Reroute(S);
-                bRerouted = true;
+                bChanged = true;
                 DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
             }
         }
@@ -101,7 +101,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
 
     HASSERT(m_pRoot->Children.empty(), "Unresolved nodes");
 
-    return bRerouted;
+    return bChanged;
 }
 
 void OpenTree::SerializeDotGraph(std::ostream& _Out) const
@@ -193,12 +193,13 @@ OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
     return nullptr;
 }
 
-void OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront)
+bool OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront)
 {
+    bool bChanged = false;
     // only execute if nodes in ordering are not reconverging already
     if (_bPrepareIfReconv || CheckReconvergence::IsReconverging(_Ordering) == false)
     {
-        NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront);
+        bChanged = NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront);
     }
 
     // reserve enough space for root & flow blocks
@@ -222,6 +223,8 @@ void OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, co
         pNode->Incoming = FilterNodes(pBB->GetPredecessors(), True, *this);
         GetOutgoingFlow(pNode->Outgoing, pNode);
     }
+
+    return bChanged;
 }
 
 void OpenTree::AddNode(OpenTreeNode* _pNode)

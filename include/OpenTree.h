@@ -96,7 +96,7 @@ public:
         m_sDebugOutputPath(_sDebugOutPath), m_bRemoveClosed(_bRemoveClosed) {};
     ~OpenTree() {};
 
-    // returns true if flow was rerouted
+    // returns true if flow was rerouted or virtual nodes were inserted
     bool Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront = false, const bool _bCloseBeforeCond2 = false);
 
     void SerializeDotGraph(std::ostream& _Out) const;
@@ -105,7 +105,7 @@ public:
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;
 
-    void Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront);
+    bool Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront);
 
     void AddNode(OpenTreeNode* _pNode);
 

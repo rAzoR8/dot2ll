@@ -257,8 +257,9 @@ NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit)
     return Order;
 }
 
-void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront)
+bool NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFront)
 {
+    bool bChanged = false;
     for (auto it = _Order.begin(); it != _Order.end(); ++it)
     {
         BasicBlock* pBB = *it;
@@ -301,7 +302,11 @@ void NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
                     HLOG("Inserting %s before %s in ordering", WCSTR(pVirtual->GetName()), WCSTR((*it)->GetName()));
                     _Order.insert(pos1 < pos2 ? succ1 : succ2, pVirtual);
                 }
+
+                bChanged = true;
             }
         }
     }
+
+    return bChanged;
 }
