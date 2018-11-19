@@ -19,9 +19,10 @@ public:
         DepthFirstDom = 1 << 1,
         BreadthFirst = 1 << 2,
         BreadthFirstDom = 1 << 3,
-        RPOT = 1 << 4,
-        Custom = 1 << 5,
-        NumOf = 6,
+        PostOrder = 1 << 4,
+        ReversePostOrder = 1 << 5,
+        Custom = 1 << 6,
+        NumOf = 7,
         All = (Custom << 1) - 1        
     };
 
@@ -33,7 +34,7 @@ public:
 
     static NodeOrder ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitLast = false);
 
-    static NodeOrder ComputeReversePostorderTraversal(BasicBlock* _pExit);
+    static NodeOrder ComputePostOrderTraversal(BasicBlock* _pExit, const bool _bReverse = false);
 
     static NodeOrder ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckAncestors = false);
 

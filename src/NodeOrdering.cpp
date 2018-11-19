@@ -57,13 +57,20 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitL
     return Order;
 }
 
-NodeOrder NodeOrdering::ComputeReversePostorderTraversal(BasicBlock * _pExit)
+NodeOrder NodeOrdering::ComputePostOrderTraversal(BasicBlock* _pExit, const bool _bReverse)
 {
     NodeOrder Order;
     
     for (BasicBlock* pBB : CFGUtils::DepthFirst(_pExit, false))
     {
-        Order.push_front(pBB);
+        if (_bReverse)
+        {
+            Order.push_front(pBB);
+        }
+        else
+        {
+            Order.push_back(pBB);
+        }
     }
 
     return Order;

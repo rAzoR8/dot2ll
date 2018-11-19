@@ -13,7 +13,8 @@ static const std::wstring OrderNames[] =
     L"DepthFirstDom",
     L"BreadthFirst",
     L"BreadthFirstDom",
-    L"RPOT",
+    L"PostOrder",
+    L"ReversePostOrder",
     L"Custom"
 };
 
@@ -63,8 +64,12 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
             InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock(), true);
             sOutName += "_bfd";
             break;
-        case NodeOrdering::RPOT:
-            InputOrdering = NodeOrdering::ComputeReversePostorderTraversal(func.GetExitBlock());
+        case NodeOrdering::PostOrder:
+            InputOrdering = NodeOrdering::ComputePostOrderTraversal(func.GetExitBlock(), false);
+            sOutName += "_pot";
+            break;
+        case NodeOrdering::ReversePostOrder:
+            InputOrdering = NodeOrdering::ComputePostOrderTraversal(func.GetExitBlock(), true);
             sOutName += "_rpot";
             break;
         case NodeOrdering::Custom:
@@ -165,9 +170,13 @@ int main(int argc, char* argv[])
         {
             kOrder |= NodeOrdering::BreadthFirstDom;
         }
-        else if (token == "-breadthfirstdom")
+        else if (token == "-postorder")
         {
-            kOrder |= NodeOrdering::RPOT;
+            kOrder |= NodeOrdering::PostOrder;
+        }
+        else if (token == "-reversepostorder")
+        {
+            kOrder |= NodeOrdering::ReversePostOrder;
         }
         else if (token == "-all")
         {
