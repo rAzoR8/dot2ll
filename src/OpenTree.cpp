@@ -4,6 +4,10 @@
 #include "CheckReconvergence.h"
 #include <deque>
 
+// for debugging 
+#include "DotWriter.h"
+#include "CFG2Dot.h"
+
 void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruction* _pCondition)
 {
     if (Conditions.count(_pTarget) == 0u)
@@ -22,7 +26,8 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
     bChanged = Initialize(Ordering, _bPrepareIfReconv, _bPutVirtualFront);
 
     // root
-    DumpDotToFile("0_step.dot");
+    DumpOTDotToFile("0_step.dot");
+    DumpCFGToFile("inputcfg.dot");
 
     // For each basic block B in the ordering
     for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
@@ -48,14 +53,14 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
                 {
                     Reroute(S);
                     bChanged = true;
-                    DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
+                    DumpOTDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
                 }
             }
         }
         
         AddNode(pNode);
 
-        DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
+        DumpOTDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
 
         if (_bCloseBeforeCond2)
         {
@@ -89,7 +94,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
             {
                 Reroute(S);
                 bChanged = true;
-                DumpDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
+                DumpOTDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
             }
         }
     }
@@ -104,7 +109,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
     return bChanged;
 }
 
-void OpenTree::SerializeDotGraph(std::ostream& _Out) const
+void OpenTree::SerializeOTDotGraph(std::ostream& _Out) const
 {
     _Out << "digraph OT {\nnode[shape = box]\n";
 
@@ -151,13 +156,27 @@ void OpenTree::SerializeDotGraph(std::ostream& _Out) const
     _Out << "}" << std::endl;
 }
 
-void OpenTree::DumpDotToFile(const std::string& _sPath) const
+void OpenTree::DumpOTDotToFile(const std::string& _sPath) const
 {
     std::ofstream stream(m_sDebugOutputPath + _sPath);
     if (stream.is_open())
     {
-        SerializeDotGraph(stream);
+        SerializeOTDotGraph(stream);
         stream.close();
+    }
+}
+
+void OpenTree::DumpCFGToFile(const std::string& _sPath)
+{
+    std::ofstream dotout(m_sDebugOutputPath + _sPath);
+
+    if (dotout.is_open() && m_Nodes.size() > 1)
+    {
+        auto& cfg = *m_Nodes[1].pBB->GetCFG();
+
+        DotWriter::WriteToStream(CFG2Dot::Convert(cfg, cfg.GetFunction()->GetName()), dotout);
+
+        dotout.close();
     }
 }
 
@@ -199,7 +218,7 @@ bool OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, co
     // only execute if nodes in ordering are not reconverging already
     if (_bPrepareIfReconv || CheckReconvergence::IsReconverging(_Ordering) == false)
     {
-        bChanged = NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront);
+        bChanged = NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront, false);
     }
 
     // reserve enough space for root & flow blocks

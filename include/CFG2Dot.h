@@ -9,30 +9,28 @@ public:
     CFG2Dot() {};
     ~CFG2Dot() {};
 
-    static DotGraph Convert(const ControlFlowGraph& _CFG, const std::string& _sName = {}, const std::string& _sUniformAttribKey = "style", const std::string& _sUniformAttribValue = "dotted");
-};
-
-DotGraph CFG2Dot::Convert(const ControlFlowGraph& _CFG, const std::string& _sName, const std::string& _sUniformAttribKey, const std::string& _sUniformAttribValue)
-{
-    DotGraph dot(kGraphType_Directed, _sName);
-
-    for (const BasicBlock& BB : _CFG)
+    static DotGraph Convert(const ControlFlowGraph& _CFG, const std::string& _sName = {}, const bool _bIgnoreVirtual = true, const std::string& _sUniformAttribKey = "style", const std::string& _sUniformAttribValue = "dotted")
     {
-        if (BB.IsVirtual())
-            continue;
+        DotGraph dot(kGraphType_Directed, _sName);
 
-        DotNode* pNode = dot.AddNode(BB.GetName());
-        TAttributes EdgeAttribts;
-        if (BB.IsDivergent() == false)
+        for (const BasicBlock& BB : _CFG)
         {
-            EdgeAttribts[_sUniformAttribKey] = _sUniformAttribValue;
+            if (_bIgnoreVirtual && BB.IsVirtual())
+                continue;
+
+            DotNode* pNode = dot.AddNode(BB.GetName());
+            TAttributes EdgeAttribts;
+            if (BB.IsDivergent() == false)
+            {
+                EdgeAttribts[_sUniformAttribKey] = _sUniformAttribValue;
+            }
+
+            for (BasicBlock* pSucc : BB.GetSuccesors())
+            {
+                pNode->AddSuccessor(dot.AddNode(pSucc->GetName()), EdgeAttribts);
+            }
         }
 
-        for (BasicBlock* pSucc : BB.GetSuccesors())
-        {
-            pNode->AddSuccessor(dot.AddNode(pSucc->GetName()), EdgeAttribts);
-        }
+        return dot;
     }
-
-    return dot;
-}
+};

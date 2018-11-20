@@ -99,8 +99,10 @@ public:
     // returns true if flow was rerouted or virtual nodes were inserted
     bool Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront = false, const bool _bCloseBeforeCond2 = false);
 
-    void SerializeDotGraph(std::ostream& _Out) const;
-    void DumpDotToFile(const std::string& _sPath) const;
+    void SerializeOTDotGraph(std::ostream& _Out) const;
+    void DumpOTDotToFile(const std::string& _sPath) const;
+
+    void DumpCFGToFile(const std::string& _sPath);
 
 private:
     OpenTreeNode* GetNode(BasicBlock* _pBB) const;
