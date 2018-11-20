@@ -85,7 +85,7 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
 
         if (InputOrdering.size() != uUserNodes)
         {
-            HFATALD("Orderin is not a valid traversal of the input CFG!");
+            HFATALD("Ordering is not a valid traversal of the input CFG!");
             return;
         }
 

@@ -172,9 +172,7 @@ void OpenTree::DumpCFGToFile(const std::string& _sPath)
 
     if (dotout.is_open() && m_Nodes.size() > 1)
     {
-        auto& cfg = *m_Nodes[1].pBB->GetCFG();
-
-        DotWriter::WriteToStream(CFG2Dot::Convert(cfg, cfg.GetFunction()->GetName()), dotout);
+        DotWriter::WriteToStream(CFG2Dot::Convert(m_pFunction->GetCFG(), m_pFunction->GetName()), dotout);
 
         dotout.close();
     }
@@ -218,7 +216,7 @@ bool OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, co
     // only execute if nodes in ordering are not reconverging already
     if (_bPrepareIfReconv || CheckReconvergence::IsReconverging(_Ordering) == false)
     {
-        bChanged = NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront, false);
+        bChanged = NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront, true);
     }
 
     // reserve enough space for root & flow blocks
@@ -232,6 +230,11 @@ bool OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, co
     {
         HLOG("\t%s %s", WCSTR(B->GetName()), B->IsDivergent() ? L"" : L"Uniform");
         m_BBToNode[B] = &m_Nodes.emplace_back(this, B);
+
+        if (m_pFunction == nullptr)
+        {
+            m_pFunction = B->GetCFG()->GetFunction();
+        }
     }
 
     // there is no outgoing edge from the ROOT to its successors (or incoming edge from the ROOT)
@@ -799,4 +802,20 @@ const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
     }
 
     return false;
+}
+
+const bool OpenSubTreeUnion::IsReconverging() const
+{
+    if (m_Nodes.empty()) return false;
+
+    Function* pFunc = (*m_Nodes.begin())->pBB->GetCFG()->GetFunction();
+    DominatorTree PDT{ pFunc->GetPostDominatorTree() };
+
+    for (OpenTreeNode* pNode : m_Nodes)
+    {
+        if (CheckReconvergence::IsReconverging(pNode->pBB, PDT) == false)
+            return false;
+    }
+
+    return true;
 }

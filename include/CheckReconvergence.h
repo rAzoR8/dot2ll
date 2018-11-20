@@ -11,6 +11,8 @@ public:
 
     template<class Container>
     static bool IsReconverging(const Container& _BasicBlocks);
+
+    static bool IsReconverging(const BasicBlock* _pBB, const DominatorTree& _PDT);
 };
 
 inline bool CheckReconvergence::IsReconverging(const Function& _Func, const bool _bDisplayAll)
@@ -61,12 +63,30 @@ inline bool CheckReconvergence::IsReconverging(const Function& _Func, const bool
     return bFuncReconv;
 }
 
+inline bool CheckReconvergence::IsReconverging(const BasicBlock* _pBB, const DominatorTree& _PDT)
+{
+    if (_pBB->IsDivergent())
+    {
+        const Instruction* pTerminator = _pBB->GetTerminator();
+        HASSERT(pTerminator->Is(kInstruction_BranchCond), "Invalid branch instruction");
+
+        const BasicBlock* pTrueBlock = pTerminator->GetOperandBB(1u);
+        const BasicBlock* pFalseBlock = pTerminator->GetOperandBB(2u);
+
+        if ((!_PDT.Dominates(pTrueBlock, _pBB) || !_PDT.Dominates(pTrueBlock, pFalseBlock)) &&
+            (!_PDT.Dominates(pFalseBlock, _pBB) || !_PDT.Dominates(pFalseBlock, pTrueBlock)))
+            return false;
+    }
+
+    return true;
+}
+
 template<class Container>
 inline bool CheckReconvergence::IsReconverging(const Container& _BasicBlocks)
 {
     BasicBlock* pExit = nullptr;
 
-    for (auto it = _BasicBlocks.rbegin(), end = _BasicBlocks.rend(); it != end; ++it)
+    for (auto it = _BasicBlocks.begin(), end = _BasicBlocks.end(); it != end; ++it)
     {
         if ((*it)->IsSink())
         {
@@ -82,17 +102,9 @@ inline bool CheckReconvergence::IsReconverging(const Container& _BasicBlocks)
 
     for (const BasicBlock* pBB : _BasicBlocks)
     {
-        if (pBB->IsDivergent())
+        if (IsReconverging(pBB, PDT) == false)
         {
-            const Instruction* pTerminator = pBB->GetTerminator();
-            HASSERT(pTerminator->Is(kInstruction_BranchCond), "Invalid branch instruction");
-
-            const BasicBlock* pTrueBlock = pTerminator->GetOperandBB(1u);
-            const BasicBlock* pFalseBlock = pTerminator->GetOperandBB(2u);
-
-            if ((!PDT.Dominates(pTrueBlock, pBB) || !PDT.Dominates(pTrueBlock, pFalseBlock)) &&
-                (!PDT.Dominates(pFalseBlock, pBB) || !PDT.Dominates(pFalseBlock, pTrueBlock)))
-                return false;
+            return false;
         }
     }
 

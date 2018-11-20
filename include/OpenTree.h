@@ -7,6 +7,7 @@
 
 // forward delc
 class OpenTree;
+class Function;
 
 struct OpenTreeNode
 {
@@ -74,6 +75,7 @@ public:
 
     const bool HasOutgoingNotLeadingTo(BasicBlock* _pBB) const;
     const bool HasMultiRootsOrOutgoing() const;
+    const bool IsReconverging() const;
 
 private:
     // order of nodes does not depend on memory address
@@ -135,6 +137,7 @@ private:
     std::unordered_map<BasicBlock*, OpenTreeNode*> m_BBToNode;
     const bool m_bRemoveClosed;
     std::string m_sDebugOutputPath;
+    Function* m_pFunction = nullptr;
 };
 
 template<class OutputContainer, class Container, class Filter, class Accessor>
