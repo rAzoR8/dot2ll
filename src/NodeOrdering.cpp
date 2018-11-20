@@ -268,11 +268,20 @@ bool NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
    
     if (_bExitLast && _Order.empty() == false && _Order.back()->IsSink() == false)
     {
-        if (auto sink = std::find_if(_Order.begin(), _Order.end(), [](BasicBlock* pBB) {return pBB->IsSink(); }); sink != _Order.end())
+        if (auto it = std::find_if(_Order.begin(), _Order.end(), [](BasicBlock* pBB) {return pBB->IsSink(); }); it != _Order.end())
         {
-            auto end = std::prev(_Order.end());
-            HLOG("Enforcing exit block last by swapping %s with %s", WCSTR((*sink)->GetName()), WCSTR((*end)->GetName()));
-            std::iter_swap(sink, end);
+            BasicBlock* pExit = *it;
+            _Order.erase(it);
+            _Order.push_back(pExit);
+
+            //BasicBlock* pExit = *it;
+            //for (auto next = std::next(it); next != _Order.end(); it = next, ++next)
+            //{
+            //    *it = *next;
+            //}
+            //*it = pExit;
+
+            HLOG("Enforcing exit block last");
             //bChanged = true;
         }        
     }
