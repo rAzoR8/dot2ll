@@ -59,21 +59,7 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitL
 
 NodeOrder NodeOrdering::ComputePostOrderTraversal(BasicBlock* _pRoot, const bool _bReverse)
 {
-    NodeOrder Order;
-    
-    for (BasicBlock* pBB : CFGUtils::DepthFirst(_pRoot))
-    {
-        if (_bReverse)
-        {
-            Order.push_front(pBB);
-        }
-        else
-        {
-            Order.push_back(pBB);
-        }
-    }
-
-    return Order;
+    return CFGUtils::PostOrderTraversal(_pRoot, _bReverse);
 }
 
 bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Checked, std::unordered_set<BasicBlock*>& _Traversed, BasicBlock* _pBB)
@@ -284,7 +270,10 @@ bool NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
     {
         if (auto sink = std::find_if(_Order.begin(), _Order.end(), [](BasicBlock* pBB) {return pBB->IsSink(); }); sink != _Order.end())
         {
-            std::iter_swap(sink,std::prev(_Order.end()));
+            auto end = std::prev(_Order.end());
+            HLOG("Enforcing exit block last by swapping %s with %s", WCSTR((*sink)->GetName()), WCSTR((*end)->GetName()));
+            std::iter_swap(sink, end);
+            //bChanged = true;
         }        
     }
 

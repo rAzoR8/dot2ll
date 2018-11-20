@@ -65,11 +65,11 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
             sOutName += "_bfd";
             break;
         case NodeOrdering::PostOrder:
-            InputOrdering = NodeOrdering::ComputePostOrderTraversal(func.GetExitBlock(), false);
+            InputOrdering = NodeOrdering::ComputePostOrderTraversal(func.GetEntryBlock(), false);
             sOutName += "_pot";
             break;
         case NodeOrdering::ReversePostOrder:
-            InputOrdering = NodeOrdering::ComputePostOrderTraversal(func.GetExitBlock(), true);
+            InputOrdering = NodeOrdering::ComputePostOrderTraversal(func.GetEntryBlock(), true);
             sOutName += "_rpot";
             break;
         case NodeOrdering::Custom:

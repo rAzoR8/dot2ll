@@ -59,14 +59,15 @@ struct CFGUtils
     }
 
     // check if there is a path from _pCurrent to _pNode
-    static bool IsReachable(const BasicBlock* _pNode, const BasicBlock* _pCurrent, std::unordered_set<const BasicBlock*>& _Set, const bool _bForward = true, const BasicBlock* _pWithout = nullptr)
+    template <class BB = BasicBlock>
+    static bool IsReachable(const BB* _pNode, const BB* _pCurrent, std::unordered_set<const BB*>& _Set, const bool _bForward = true, const BB* _pWithout = nullptr)
     {
         if (_pCurrent == _pNode)
             return true;
 
         const auto& Successors = _bForward ? _pCurrent->GetSuccesors() : _pCurrent->GetPredecessors();
 
-        for (const BasicBlock* pSucc : Successors)
+        for (const BB* pSucc : Successors)
         {
             if (pSucc == _pWithout)
                 continue;
@@ -109,5 +110,38 @@ struct CFGUtils
         DepthFirst(_pRoot, Vec, Set, _bForward);
 
         return Vec;
+    }
+
+    template <class BB = BasicBlock>
+    static void PostOrderTraversal(std::list<BB*>& _Order, std::unordered_set<BB*>& _Visited, BB* _pBB, const bool _bReverse)
+    {
+        _Visited.insert(_pBB);
+
+        for (BB* pSucc : _pBB->GetSuccesors())
+        {
+            if (_Visited.count(pSucc) == 0)
+            {
+                PostOrderTraversal(_Order, _Visited, pSucc, _bReverse);
+            }
+        }
+
+        if (_bReverse)
+        {
+            _Order.push_front(_pBB);
+        }
+        else
+        {
+            _Order.push_back(_pBB);
+        }
+    }
+
+    template <class BB = BasicBlock>
+    static std::list<BB*> PostOrderTraversal(BB* _pRoot, const bool _bReverse)
+    {
+        std::list<BB*> Order;
+        std::unordered_set<BB*> Visited;
+
+        PostOrderTraversal(Order, Visited, _pRoot, _bReverse);
+        return Order;
     }
 };
