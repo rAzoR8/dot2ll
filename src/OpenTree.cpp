@@ -17,20 +17,18 @@ void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruc
     Conditions[_pTarget][_pSource] = _pCondition;
 }
 
-bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront)
+bool OpenTree::Process(const NodeOrder& _Ordering)
 {
     bool bChanged = false;
 
-    NodeOrder Ordering(_Ordering);
-
-    bChanged = Initialize(Ordering, _bPrepareIfReconv, _bPutVirtualFront);
+    Initialize(_Ordering);
 
     // root
     DumpOTDotToFile("0_step.dot");
     DumpCFGToFile("inputcfg.dot");
 
     // For each basic block B in the ordering
-    for (BasicBlock* B : Ordering) // processNode(BBNode &Node)
+    for (BasicBlock* B : _Ordering)
     {
         uint32_t uStep = 0u;
         OpenTreeNode* pNode = GetNode(B);
@@ -203,15 +201,8 @@ OpenTreeNode* OpenTree::GetNode(BasicBlock* _pBB) const
     return nullptr;
 }
 
-bool OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront)
+void OpenTree::Initialize(const NodeOrder& _Ordering)
 {
-    bool bChanged = false;
-    // only execute if nodes in ordering are not reconverging already
-    if (_bPrepareIfReconv || CheckReconvergence::IsReconverging(_Ordering) == false)
-    {
-        bChanged = NodeOrdering::PrepareOrdering(_Ordering, _bPutVirtualFront, true);
-    }
-
     // reserve enough space for root & flow blocks
     m_Nodes.reserve(_Ordering.size() * 2u);
     m_pRoot = &m_Nodes.emplace_back(this, nullptr);
@@ -238,8 +229,6 @@ bool OpenTree::Initialize(NodeOrder& _Ordering, const bool _bPrepareIfReconv, co
         pNode->Incoming = FilterNodes(pBB->GetPredecessors(), True, *this);
         GetOutgoingFlow(pNode->Outgoing, pNode);
     }
-
-    return bChanged;
 }
 
 void OpenTree::AddNode(OpenTreeNode* _pNode)
