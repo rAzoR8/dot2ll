@@ -144,4 +144,30 @@ struct CFGUtils
         PostOrderTraversal(Order, Visited, _pRoot, _bReverse);
         return Order;
     }
+
+    static bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Checked, std::unordered_set<BasicBlock*>& _Traversed, BasicBlock* _pBB)
+    {
+        for (BasicBlock* pAncestor : _pBB->GetPredecessors())
+        {
+            if (_Checked.count(pAncestor) == 0) // ignore loops etc
+            {
+                if (_Traversed.count(pAncestor) == 0) // not traversed yet
+                    return false;
+
+                _Checked.insert(pAncestor);
+
+                if (AncestorsTraversed(_Checked, _Traversed, pAncestor) == false)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    static bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Traversed, BasicBlock* _pBB)
+    {
+        std::unordered_set<BasicBlock*> checked;
+
+        return AncestorsTraversed(checked, _Traversed, _pBB);
+    };
 };

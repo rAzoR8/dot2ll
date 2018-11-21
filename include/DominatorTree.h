@@ -8,7 +8,10 @@ class DominatorTree
 public:
     // _pRoot is the source of a dominator tree
     // and the sink for a post-dominator tree
-    DominatorTree(const BasicBlock* _pRoot, const bool _PostDom = false);
+    DominatorTree(const BasicBlock* _pRoot = nullptr, const bool _PostDom = false);
+    DominatorTree(DominatorTree&& _Other);
+    DominatorTree& operator=(DominatorTree&& _Other);
+
     ~DominatorTree() {};
 
     bool Dominates(const BasicBlock* _pDominator, const BasicBlock* _pBlock) const;

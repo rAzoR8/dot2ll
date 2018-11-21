@@ -1,5 +1,5 @@
 #include "NodeOrdering.h"
-#include "DominatorTree.h"
+#include "Function.h"
 #include "CFGUtils.h"
 #include "hlx/include/StringHelpers.h"
 
@@ -62,34 +62,15 @@ NodeOrder NodeOrdering::ComputePostOrderTraversal(BasicBlock* _pRoot, const bool
     return CFGUtils::PostOrderTraversal(_pRoot, _bReverse);
 }
 
-bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Checked, std::unordered_set<BasicBlock*>& _Traversed, BasicBlock* _pBB)
+NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckDominance)
 {
-    for (BasicBlock* pAncestor : _pBB->GetPredecessors())
+    DominatorTree PDT;
+
+    if (_bCheckDominance)
     {
-        if (_Checked.count(pAncestor) == 0) // ignore loops etc
-        {
-            if (_Traversed.count(pAncestor) == 0) // not traversed yet
-                return false;
-
-            _Checked.insert(pAncestor);
-
-            if (AncestorsTraversed(_Checked, _Traversed, pAncestor) == false)
-                return false;
-        }
+        PDT = std::move(_pRoot->GetCFG()->GetFunction()->GetPostDominatorTree());
     }
 
-    return true;
-}
-
-bool AncestorsTraversed(std::unordered_set<BasicBlock*>& _Traversed, BasicBlock* _pBB)
-{
-    std::unordered_set<BasicBlock*> checked;
-
-    return AncestorsTraversed(checked, _Traversed, _pBB);
-};
-
-NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckAncestors)
-{
     NodeOrder Order;
 
     std::unordered_set<BasicBlock*> traversed;
@@ -123,35 +104,33 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bChe
         return frontier.erase(it);
     };
 
-    while (frontier.empty() == false)
+    const auto Pick = [&]()->std::list<Front>::iterator
     {
-        const size_t size = frontier.size();
+        if (frontier.size() == 1u)
+            return frontier.begin();
 
-        for (auto it = frontier.begin(); _bCheckAncestors && it != frontier.end();)
+        if (_bCheckDominance)
         {
-            if (AncestorsTraversed(traversed, it->pBB))
-            {
-                it = Traverse(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
+            BasicBlock* pPrev = Order.back();
 
-        // size didnt change, break tie
-        if (frontier.size() == size)
-        {
-            // frontier is sorted already, take the first node that is not the sink!
-            for (auto it = frontier.begin(), end = frontier.end(); it != end; ++it)
+            // pick the successor which does not dominate the previous node
+            for (auto it = frontier.begin(); it != frontier.end(); ++it)
             {
-                if (it->pBB->IsSink() == false || size == 1u)
+                BasicBlock* pCur = it->pBB;
+                if (pCur->IsSuccessorOf(pPrev) && PDT.Dominates(pCur, pPrev) == false)
                 {
-                    Traverse(it);
-                    break;
+                    return it;
                 }
             }
         }
+
+        // pick the one with the shortest path which is not the sink
+        return frontier.front().pBB->IsSink() ? std::next(frontier.begin()) : frontier.begin();
+    };
+
+    while (frontier.empty() == false)
+    {
+        Traverse(Pick());
     }
 
     return Order;
@@ -273,13 +252,6 @@ bool NodeOrdering::PrepareOrdering(NodeOrder& _Order, const bool _bPutVirtualFro
             BasicBlock* pExit = *it;
             _Order.erase(it);
             _Order.push_back(pExit);
-
-            //BasicBlock* pExit = *it;
-            //for (auto next = std::next(it); next != _Order.end(); it = next, ++next)
-            //{
-            //    *it = *next;
-            //}
-            //*it = pExit;
 
             HLOG("Enforcing exit block last");
             //bChanged = true;

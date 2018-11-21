@@ -64,6 +64,10 @@ public:
     const bool IsDivergent() const { return m_bDivergent && m_Successors.size() > 1u; }
     const bool GetDivergenceQualifier() const { return m_bDivergent; }
 
+    // check if this is a successor of _pBB
+    bool IsSuccessorOf(const BasicBlock* _pBB) const { return std::find(_pBB->m_Successors.cbegin(), _pBB->m_Successors.cend(), this) != _pBB->m_Successors.cend(); }
+    bool IsPredecessorOf(const BasicBlock* _pBB) const { return std::find(_pBB->m_Predecessors.cbegin(), _pBB->m_Predecessors.cend(), this) != _pBB->m_Predecessors.cend(); }
+
 private:
     const InstrId m_uIdentifier;
 

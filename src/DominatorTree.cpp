@@ -3,26 +3,40 @@
 
 DominatorTree::DominatorTree(const BasicBlock* _pRoot, const bool _bPostDom)
 {
-    std::unordered_set<const BasicBlock*> Set;
-    std::vector<const BasicBlock*> BBs;
-
-    CFGUtils::DepthFirst(_pRoot, BBs, Set, !_bPostDom);
-
-    for (auto it = BBs.begin(), end = BBs.end(); it != end; ++it)
+    if (_pRoot != nullptr)
     {
-        const BasicBlock* pDom = *it;
+        std::unordered_set<const BasicBlock*> Set;
+        std::vector<const BasicBlock*> BBs;
 
-        for (auto it2 = BBs.begin() + 1; it2 != end; ++it2)
+        CFGUtils::DepthFirst(_pRoot, BBs, Set, !_bPostDom);
+
+        for (auto it = BBs.begin(), end = BBs.end(); it != end; ++it)
         {
-            const BasicBlock* pBlock = *it2;
-            Set.clear();
+            const BasicBlock* pDom = *it;
 
-            if (pDom == _pRoot || CFGUtils::IsReachable(pBlock, _pRoot, Set, !_bPostDom, pDom) == false)
+            for (auto it2 = BBs.begin() + 1; it2 != end; ++it2)
             {
-                m_DominatorMap.insert({ pDom, pBlock });
+                const BasicBlock* pBlock = *it2;
+                Set.clear();
+
+                if (pDom == _pRoot || CFGUtils::IsReachable(pBlock, _pRoot, Set, !_bPostDom, pDom) == false)
+                {
+                    m_DominatorMap.insert({ pDom, pBlock });
+                }
             }
         }
     }
+}
+
+DominatorTree::DominatorTree(DominatorTree&& _Other) :
+    m_DominatorMap(std::move(_Other.m_DominatorMap))
+{
+}
+
+DominatorTree& DominatorTree::operator=(DominatorTree && _Other)
+{
+    m_DominatorMap = std::move(_Other.m_DominatorMap);
+    return *this;
 }
 
 bool DominatorTree::Dominates(const BasicBlock* _pDominator, const BasicBlock* _pBlock) const
