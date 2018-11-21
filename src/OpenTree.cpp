@@ -23,8 +23,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering)
 
     Initialize(_Ordering);
 
-    // root
-    DumpOTDotToFile("0_step.dot");
+    // input
     DumpCFGToFile("inputcfg.dot");
 
     // For each basic block B in the ordering
@@ -81,9 +80,13 @@ bool OpenTree::Process(const NodeOrder& _Ordering)
                 DumpOTDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
             }
         }
+        else
+        {
+            N.push_back(pNode);
+        }
 
         // close B -> visited Succ 
-        for (OpenTreeNode* pSucc : FilterNodes(pNode->Outgoing, Visited, *this))
+        for (OpenTreeNode* pSucc : N)
         {
             pNode->Close(pSucc);
         }
