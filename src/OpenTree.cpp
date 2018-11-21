@@ -63,11 +63,10 @@ bool OpenTree::Process(const NodeOrder& _Ordering)
         // Let M be the set of unvisited successors of B
         std::vector<OpenTreeNode*> M = FilterNodes(pNode->Outgoing, Unvisited, *this);
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
-        std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, Visited, *this);
-        //std::vector<OpenTreeNode*> M = FilterNodes(pNode->Outgoing, [pNode](OpenTreeNode* _pNode) {return _pNode != pNode && _pNode->bVisited; }, *this);
+        std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, [pNode](OpenTreeNode* _pNode) {return _pNode != pNode && _pNode->bVisited; }, *this);
 
         // If N and M are non-empty
-        if (N.empty() == false && M.empty() == false)
+        if (M.empty() == false && N.empty() == false)
         {
             N.push_back(pNode);
 
@@ -84,7 +83,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering)
         }
 
         // close B -> visited Succ 
-        for (OpenTreeNode* pSucc : N)
+        for (OpenTreeNode* pSucc : FilterNodes(pNode->Outgoing, Visited, *this))
         {
             pNode->Close(pSucc);
         }
