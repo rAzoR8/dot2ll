@@ -18,7 +18,7 @@ static const std::wstring OrderNames[] =
     L"Custom"
 };
 
-void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront, const bool _bCloseSuccAfterAddNode, const std::string& _sCustomOrder)
+void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront, const std::string& _sCustomOrder)
 {
     const NodeOrdering::Type _kOrder{ 1u << _uOderIndex };
 
@@ -94,7 +94,7 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
 
         // reconverge using InputOrdering
         OpenTree OT(true, _sOutPath.string() + "/");
-        const bool bChanged = OT.Process(InputOrdering, bPrepareIfReconv, _bPutVirtualFront, _bCloseSuccAfterAddNode);
+        const bool bChanged = OT.Process(InputOrdering, bPrepareIfReconv, _bPutVirtualFront);
 
         func.Finalize();
 
@@ -144,7 +144,6 @@ int main(int argc, char* argv[])
 
     bool bReconv = false;
     bool bVirtualFront = false;
-    bool bCloseSuccAfterAddNode = false;
 
     for (int i = 1; i < argc; ++i)
     {
@@ -191,10 +190,6 @@ int main(int argc, char* argv[])
         {
             bVirtualFront = true;
         }
-        else if (token == "-closeafteradd")
-        {
-            bCloseSuccAfterAddNode = true;
-        }
         else if (token == "-out" && (i + 1) < argc)
         {
             OutputPath = argv[++i];
@@ -203,7 +198,7 @@ int main(int argc, char* argv[])
         {
             InputPath = argv[++i];
         }
-        else
+        else if(i == 1u)
         {
             InputPath = token;
         }
@@ -222,13 +217,13 @@ int main(int argc, char* argv[])
             {
                 if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
                 {
-                    dot2ll(Entry.path().string(), _uOrder, bReconv, OutputPath, bVirtualFront, bCloseSuccAfterAddNode, sCustomOrder);
+                    dot2ll(Entry.path().string(), _uOrder, bReconv, OutputPath, bVirtualFront, sCustomOrder);
                 }
             }
         }
         else
         {
-            dot2ll(InputPath.string(), _uOrder, bReconv, OutputPath, bVirtualFront, bCloseSuccAfterAddNode, sCustomOrder);
+            dot2ll(InputPath.string(), _uOrder, bReconv, OutputPath, bVirtualFront, sCustomOrder);
         }
     };
 

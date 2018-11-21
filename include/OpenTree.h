@@ -88,6 +88,8 @@ class OpenTree
     friend struct OpenTreeNode;
     static bool Armed(const OpenTreeNode* pNode) { return pNode->Armed(); }
     static bool Visited(const OpenTreeNode* pNode) { return pNode->bVisited; }
+    static bool Unvisited(const OpenTreeNode* pNode) { return pNode->bVisited == false; }
+
     //static bool Flow(const OpenTreeNode* pNode) { return pNode->bFlow; }
     static bool VisitedFlow(const OpenTreeNode* pNode) { return pNode->bVisited && pNode->bFlow; }
 
@@ -99,7 +101,7 @@ public:
     ~OpenTree() {};
 
     // returns true if flow was rerouted or virtual nodes were inserted
-    bool Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront = false, const bool _bCloseBeforeCond2 = false);
+    bool Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront = false);
 
     void SerializeOTDotGraph(std::ostream& _Out) const;
     void DumpOTDotToFile(const std::string& _sPath) const;

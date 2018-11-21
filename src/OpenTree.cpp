@@ -17,7 +17,7 @@ void FlowSuccessors::Add(OpenTreeNode* _pSource, OpenTreeNode* _pTarget, Instruc
     Conditions[_pTarget][_pSource] = _pCondition;
 }
 
-bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront, const bool _bCloseBeforeCond2)
+bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv, const bool _bPutVirtualFront)
 {
     bool bChanged = false;
 
@@ -62,40 +62,33 @@ bool OpenTree::Process(const NodeOrder& _Ordering, const bool _bPrepareIfReconv,
 
         DumpOTDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
 
-        if (_bCloseBeforeCond2)
-        {
-            // close B -> visited Succ 
-            for (OpenTreeNode* pSucc : FilterNodes(pNode->Outgoing, Visited, *this))
-            {
-                pNode->Close(pSucc);
-            }
-        }
-
+        // Let M be the set of unvisited successors of B
+        std::vector<OpenTreeNode*> M = FilterNodes(pNode->Outgoing, Unvisited, *this);
         // Let N be the set of visited successors of B, i.e. the targets of outgoing backward edges of N.
         std::vector<OpenTreeNode*> N = FilterNodes(pNode->Outgoing, Visited, *this);
+        //std::vector<OpenTreeNode*> M = FilterNodes(pNode->Outgoing, [pNode](OpenTreeNode* _pNode) {return _pNode != pNode && _pNode->bVisited; }, *this);
 
-        // If N is non-empty
-        if (N.empty() == false)
+        // If N and M are non-empty
+        if (N.empty() == false && M.empty() == false)
         {
-            // Let S be the set of subtrees routed at nodes in N.
+            N.push_back(pNode);
+
+            // Let S be the set of subtrees routed at B and nodes in N.
             OpenSubTreeUnion S(N);
 
-            if (!_bCloseBeforeCond2)
-            {
-                // close B -> visited Succ 
-                for (OpenTreeNode* pSucc : N)
-                {
-                    pNode->Close(pSucc);
-                }
-            }
-
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
-            if (S.HasMultiRootsOrOutgoing()) // TODO: need to check for divergent target? no because B might be divergent itself
+            if (S.HasMultiRootsOrOutgoing())
             {
                 Reroute(S);
                 bChanged = true;
                 DumpOTDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
             }
+        }
+
+        // close B -> visited Succ 
+        for (OpenTreeNode* pSucc : N)
+        {
+            pNode->Close(pSucc);
         }
     }
 
@@ -770,17 +763,20 @@ const bool OpenSubTreeUnion::HasOutgoingNotLeadingTo(BasicBlock* _pBB) const
 
 const bool OpenSubTreeUnion::HasMultiRootsOrOutgoing() const
 {
-    // TODO: check if roots have open outgoing edges, otherwise theres nothing to reroute
-    if (m_Roots.size() > 1u)
-    {
-        for (OpenTreeNode* pNode : m_Nodes)
-        {
-            if (pNode->Outgoing.empty() == false)
-                return true;
-        }
+    //// TODO: check if roots have open outgoing edges, otherwise theres nothing to reroute
+    //if (m_Roots.size() > 1u)
+    //{
+    //    for (OpenTreeNode* pNode : m_Nodes)
+    //    {
+    //        if (pNode->Outgoing.empty() == false)
+    //            return true;
+    //    }
 
-        HLOG("Subtree containing %d roots without open outoing edges", static_cast<uint32_t>(m_Roots.size()));
-    }
+    //    HLOG("Subtree containing %d roots without open outoing edges", static_cast<uint32_t>(m_Roots.size()));
+    //}
+
+    if (m_Roots.size() > 1u)
+        return true;
 
     OpenTreeNode* pFirstOut = nullptr;
     for (OpenTreeNode* pNode : m_Nodes)
