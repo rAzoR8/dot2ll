@@ -97,7 +97,7 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
         // only execute if nodes in ordering are not reconverging already
         if (bPrepareIfReconv || CheckReconvergence::IsReconverging(InputOrdering) == false)
         {
-            bChangedCFG = NodeOrdering::PrepareOrdering(InputOrdering, _bPutVirtualFront, false);
+            bChangedCFG = NodeOrdering::PrepareOrdering(InputOrdering, _bPutVirtualFront, true);
         }
 
         // reconverge using InputOrdering
