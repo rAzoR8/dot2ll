@@ -15,12 +15,13 @@ static const std::wstring OrderNames[] =
     L"BreadthFirstDom",
     L"PostOrder",
     L"ReversePostOrder",
+    L"DominanceRegion",
     L"Custom"
 };
 
 void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront, const std::string& _sCustomOrder)
 {
-    const NodeOrdering::Type _kOrder{ 1u << _uOderIndex };
+    const NodeOrdering::OrderType _kOrder{ 1u << _uOderIndex };
 
     DotGraph dotin = DotParser::ParseFromFile(_sDotFile);
 
@@ -40,7 +41,7 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
     const bool bInputReconverging = CheckReconvergence::IsReconverging(func);
 
     HLOG("Processing %s '%s' [Order: %s Reconv: %s]", WCSTR(_sDotFile), WCSTR(dotin.GetName()),
-        _kOrder == NodeOrdering::Custom ? WCSTR(_sCustomOrder) : WCSTR(OrderNames[_uOderIndex]), bInputReconverging ? L"true" : L"false");
+        _kOrder == NodeOrdering::Order_Custom ? WCSTR(_sCustomOrder) : WCSTR(OrderNames[_uOderIndex]), bInputReconverging ? L"true" : L"false");
 
     std::string sOutName = dotin.GetName();
 
@@ -52,33 +53,37 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
 
         switch (_kOrder)
         {
-        case NodeOrdering::DepthFirst:
-            InputOrdering = NodeOrdering::ComputeDepthFirst(func.GetEntryBlock());
+        case NodeOrdering::Order_DepthFirst:
+            InputOrdering = NodeOrdering::DepthFirst(func.GetEntryBlock());
             sOutName += "_df";
             break;
-        case NodeOrdering::BreadthFirst:
-            InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock(), false);
+        case NodeOrdering::Order_BreadthFirst:
+            InputOrdering = NodeOrdering::BreadthFirst(func.GetEntryBlock(), false);
             sOutName += "_bf";
             break;
-        case NodeOrdering::BreadthFirstDom:
-            InputOrdering = NodeOrdering::ComputeBreadthFirst(func.GetEntryBlock(), true);
+        case NodeOrdering::Order_BreadthFirstDom:
+            InputOrdering = NodeOrdering::BreadthFirst(func.GetEntryBlock(), true);
             sOutName += "_bfd";
             break;
-        case NodeOrdering::PostOrder:
-            InputOrdering = NodeOrdering::ComputePostOrderTraversal(func.GetEntryBlock(), false);
+        case NodeOrdering::Order_PostOrder:
+            InputOrdering = NodeOrdering::PostOrderTraversal(func.GetEntryBlock(), false);
             sOutName += "_pot";
             break;
-        case NodeOrdering::ReversePostOrder:
-            InputOrdering = NodeOrdering::ComputePostOrderTraversal(func.GetEntryBlock(), true);
+        case NodeOrdering::Order_ReversePostOrder:
+            InputOrdering = NodeOrdering::PostOrderTraversal(func.GetEntryBlock(), true);
             sOutName += "_rpot";
             break;
-        case NodeOrdering::Custom:
-            InputOrdering = NodeOrdering::ComputeCustomOrder(func.GetCFG(), _sCustomOrder);
+        case NodeOrdering::Order_DominanceRegion:
+            InputOrdering = NodeOrdering::DominanceRegion(func.GetEntryBlock());
+            sOutName += "_domreg";
+            break;
+        case NodeOrdering::Order_Custom:
+            InputOrdering = NodeOrdering::Custom(func.GetCFG(), _sCustomOrder);
             sOutName += "_custom";
             break;
-        case NodeOrdering::DepthFirstDom:
+        case NodeOrdering::Order_DepthFirstDom:
         default:
-            InputOrdering = NodeOrdering::ComputePaper(func.GetEntryBlock(), func.GetExitBlock());
+            InputOrdering = NodeOrdering::DepthFirstPostDom(func.GetEntryBlock(), func.GetExitBlock());
             sOutName += "_dfd";
             break;
         }
@@ -143,7 +148,7 @@ int main(int argc, char* argv[])
     if (argc < 2)
         return 1;
 
-    uint32_t kOrder = NodeOrdering::None;
+    uint32_t kOrder = NodeOrdering::Order_None;
     hlx::Logger::Instance()->WriteToStream(&std::wcout);
 
     std::filesystem::path InputPath;
@@ -163,35 +168,39 @@ int main(int argc, char* argv[])
         }
         else if (token == "-depthfirst" || token == "-df")
         {
-            kOrder |= NodeOrdering::DepthFirst;
+            kOrder |= NodeOrdering::Order_DepthFirst;
         }
         else if (token == "-depthfirstdom" || token == "-dfd")
         {
-            kOrder |= NodeOrdering::DepthFirstDom;
+            kOrder |= NodeOrdering::Order_DepthFirstDom;
         }
         else if (token == "-breadthfirst" || token == "-bf")
         {
-            kOrder |= NodeOrdering::BreadthFirst;
+            kOrder |= NodeOrdering::Order_BreadthFirst;
         }
         else if (token == "-breadthfirstdom" || token == "-bfd")
         {
-            kOrder |= NodeOrdering::BreadthFirstDom;
+            kOrder |= NodeOrdering::Order_BreadthFirstDom;
         }
         else if (token == "-postorder" || token == "-pot")
         {
-            kOrder |= NodeOrdering::PostOrder;
+            kOrder |= NodeOrdering::Order_PostOrder;
         }
         else if (token == "-reversepostorder" || token == "-rpot")
         {
-            kOrder |= NodeOrdering::ReversePostOrder;
+            kOrder |= NodeOrdering::Order_ReversePostOrder;
+        }
+        else if (token == "-dominanceregion" || token == "-domreg")
+        {
+            kOrder |= NodeOrdering::Order_DominanceRegion;
         }
         else if (token == "-all")
         {
-            kOrder = NodeOrdering::All;
+            kOrder = NodeOrdering::Order_All;
         }
         else if (token == "-custom" && (i + 1) < argc)
         {
-            kOrder |= NodeOrdering::Custom;
+            kOrder |= NodeOrdering::Order_Custom;
             sCustomOrder = argv[++i];
         }
         else if (token == "-virtualfront")
@@ -236,12 +245,12 @@ int main(int argc, char* argv[])
     };
 
 
-    for (uint32_t i = 0u; i < NodeOrdering::NumOf; ++i)
+    for (uint32_t i = 0u; i < NodeOrdering::Order_NumOf; ++i)
     {
-        const auto kType = NodeOrdering::Type((1 << i));
+        const auto kType = NodeOrdering::OrderType((1 << i));
         if ((kOrder & kType) == kType)
         {            
-            if (kType == NodeOrdering::Custom && sCustomOrder.empty())
+            if (kType == NodeOrdering::Order_Custom && sCustomOrder.empty())
                 continue;
 
             Reconv(i);
