@@ -94,16 +94,8 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
             return;
         }
 
-        bool bChangedCFG = false;
-
-        // execute prepare pass even if input ordering is already reconverging (for debugging purpose)
-        const bool bPrepareIfReconv = true;
-
         // only execute if nodes in ordering are not reconverging already
-        if (bPrepareIfReconv || CheckReconvergence::IsReconverging(InputOrdering) == false)
-        {
-            bChangedCFG = NodeOrdering::PrepareOrdering(InputOrdering, _bPutVirtualFront, true);
-        }
+        bool bChangedCFG = !bInputReconverging ? NodeOrdering::PrepareOrdering(InputOrdering, _bPutVirtualFront, true) : false;
 
         // reconverge using InputOrdering
         OpenTree OT(true, _sOutPath.string() + "/");
@@ -124,10 +116,6 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
         }
 
         assert(bOutputReconverging);
-
-        // if the input was already reconverging, the algo should not change the CFG.
-        // (but in the case where virtual nodes are added to the ordering, this does not hold in the current definition and implemention)
-        assert(bInputReconverging ? !bChangedCFG || bPrepareIfReconv : bChangedCFG);
     }
 
     std::ofstream ll(_sOutPath / (sOutName + ".ll"));
