@@ -48,6 +48,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering)
                 // If S contains open outgoing edges that do not lead to B, reroute S Through a newly created basic block. FLOW
                 if (S.HasOutgoingNotLeadingTo(B))
                 {
+                    HLOG("Condition 1:");
                     Reroute(S);
                     bChanged = true;
                     DumpOTDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");
@@ -75,6 +76,7 @@ bool OpenTree::Process(const NodeOrder& _Ordering)
             // If S has multiple roots or open outgoing edges to multiple basic blocks, reroute S through a newly created basic block. FLOW
             if (S.HasMultiRootsOrOutgoing())
             {
+                HLOG("Condition 2:");
                 Reroute(S);
                 bChanged = true;
                 DumpOTDotToFile(B->GetName() + "_step" + std::to_string(uStep++) + ".dot");

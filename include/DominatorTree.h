@@ -7,15 +7,26 @@ class DominatorTreeNode
 {
     friend class DominatorTree;
 public:
-    DominatorTreeNode(DominatorTreeNode* _pParent = nullptr, const BasicBlock* _pBB = nullptr) :
-        m_sName(_pBB->GetName()), m_pParent(_pParent), m_pBasicBlock(_pBB) {}
+    DominatorTreeNode(const BasicBlock* _pBB = nullptr) :
+        m_sName(_pBB->GetName()), m_pBasicBlock(_pBB) {}
 
     const std::vector<DominatorTreeNode*>& GetChildren() const { return m_Children; }
+
+    const BasicBlock* GetBasicBlock() const { return m_pBasicBlock; }
+    BasicBlock* GetBasicBlock() { return const_cast<BasicBlock*>(m_pBasicBlock); }
+
+    const bool ExitAttached() const { return m_bExitAttached; }
+    const bool EntryAttached() const { return m_bEntryAttached; }
+
+private:
+    void Append(const DominatorTree& DT, DominatorTreeNode* _pSub);
 
 private:
     const std::string m_sName;
     const BasicBlock* m_pBasicBlock;
-    DominatorTreeNode* m_pParent;
+    DominatorTreeNode* m_pParent = nullptr;
+    bool m_bExitAttached = false;
+    bool m_bEntryAttached = false;
 
     std::vector<DominatorTreeNode*> m_Children;
 };
@@ -37,9 +48,6 @@ public:
     bool Dominates(const BasicBlock* _pDominator, const BasicBlock* _pBlock) const;
 
     DominatorTreeNode* GetRootNode() const { return m_pRoot; };
-
-private:
-    void Append(const BasicBlock* _pDom, const BasicBlock* _pSub);
 
 private:
     // dominator -> dominated nodes (for constant lookup)

@@ -10,10 +10,6 @@ DominatorTree::DominatorTree(const BasicBlock* _pRoot, const bool _bPostDom)
 
         CFGUtils::DepthFirst(_pRoot, BBs, Set, !_bPostDom);
 
-        m_Nodes.reserve(BBs.size());
-        m_pRoot = &m_Nodes.emplace_back(nullptr, _pRoot);
-        m_NodeMap[_pRoot] = m_pRoot;
-
         for (auto it = BBs.begin(), end = BBs.end(); it != end; ++it)
         {
             const BasicBlock* pDom = *it;
@@ -25,10 +21,26 @@ DominatorTree::DominatorTree(const BasicBlock* _pRoot, const bool _bPostDom)
 
                 if (pDom == _pRoot || CFGUtils::IsReachable(pBlock, _pRoot, Set, !_bPostDom, pDom) == false)
                 {
-                    m_DominatorMap.insert({ pDom, pBlock });
-                    Append(pDom, pBlock);
+                    m_DominatorMap.insert({ pDom, pBlock });           
                 }
             }
+        }
+
+        m_Nodes.reserve(BBs.size());
+
+        for (const BasicBlock* pBB : BBs)
+        {
+            m_NodeMap[pBB] = &m_Nodes.emplace_back(pBB);
+        }
+
+        m_pRoot = &m_Nodes.front();
+
+        for (const auto&[Dom, Sub] : m_DominatorMap)
+        {
+            DominatorTreeNode* pDom = m_NodeMap[Dom];
+            DominatorTreeNode* pSub = m_NodeMap[Sub];
+
+            pDom->Append(*this, pSub);
         }
     }
 }
@@ -38,16 +50,23 @@ DominatorTree::DominatorTree(DominatorTree&& _Other) :
 {
     m_Nodes.reserve(_Other.m_Nodes.size());
     
-    m_pRoot = &m_Nodes.emplace_back(nullptr, _Other.m_pRoot->m_pBasicBlock);
-    m_NodeMap[m_pRoot->m_pBasicBlock] = m_pRoot;
-
-    _Other.m_NodeMap.clear();
-    _Other.m_Nodes.clear();
-
-    for (const auto&[dom, sub] : m_DominatorMap)
+    for (auto& Node : _Other.m_Nodes)
     {
-        Append(dom, sub);
+        m_NodeMap[Node.GetBasicBlock()] = &m_Nodes.emplace_back(Node.GetBasicBlock());
     }
+
+    m_pRoot = &m_Nodes.front();
+
+    for (const auto&[Dom, Sub] : m_DominatorMap)
+    {
+        DominatorTreeNode* pDom = m_NodeMap[Dom];
+        DominatorTreeNode* pSub = m_NodeMap[Sub];
+
+        pDom->Append(*this, pSub);
+    }
+
+    //_Other.m_NodeMap.clear();
+    //_Other.m_Nodes.clear();
 }
 
 DominatorTree& DominatorTree::operator=(DominatorTree && _Other)
@@ -59,15 +78,19 @@ DominatorTree& DominatorTree::operator=(DominatorTree && _Other)
 
     m_Nodes.reserve(_Other.m_Nodes.size());
 
-    m_pRoot = &m_Nodes.emplace_back(nullptr, _Other.m_pRoot->m_pBasicBlock);
-    m_NodeMap[m_pRoot->m_pBasicBlock] = m_pRoot;
-
-    _Other.m_NodeMap.clear();
-    _Other.m_Nodes.clear();
-
-    for (const auto&[dom, sub] : m_DominatorMap)
+    for (auto& Node : _Other.m_Nodes)
     {
-        Append(dom, sub);
+        m_NodeMap[Node.GetBasicBlock()] = &m_Nodes.emplace_back(Node.GetBasicBlock());
+    }
+
+    m_pRoot = &m_Nodes.front();
+
+    for (const auto&[Dom, Sub] : m_DominatorMap)
+    {
+        DominatorTreeNode* pDom = m_NodeMap[Dom];
+        DominatorTreeNode* pSub = m_NodeMap[Sub];
+
+        pDom->Append(*this, pSub);
     }
 
     return *this;
@@ -89,34 +112,43 @@ bool DominatorTree::Dominates(const BasicBlock* _pDominator, const BasicBlock* _
     return false;
 }
 
-void DominatorTree::Append(const BasicBlock* _pDom, const BasicBlock* _pSub)
+void DominatorTreeNode::Append(const DominatorTree& DT, DominatorTreeNode* _pSub)
 {
-    if (_pDom == _pSub)
+    if (this == _pSub)
         return;
 
-    DominatorTreeNode* pDomNode = nullptr;
-    auto domit = m_NodeMap.find(_pDom);
-    if (domit == m_NodeMap.end())
+    for (DominatorTreeNode* pChild : m_Children)
     {
-        pDomNode = &m_Nodes.emplace_back(m_pRoot, _pDom);
-        m_NodeMap[_pDom] = pDomNode;
-    }
-    else
-    {
-        pDomNode = domit->second;
+        if (DT.Dominates(pChild->GetBasicBlock(), _pSub->GetBasicBlock()))
+        {
+            pChild->m_bEntryAttached |= _pSub->m_pBasicBlock->IsSource();
+            pChild->m_bExitAttached |= _pSub->m_pBasicBlock->IsSink();
+
+            pChild->Append(DT, _pSub);
+            return;
+        }
     }
 
-    DominatorTreeNode* pSubNode = nullptr;
-    auto subit = m_NodeMap.find(_pSub);
-    if (subit == m_NodeMap.end())
-    {
-        pSubNode = &m_Nodes.emplace_back(pDomNode, _pSub);
-        m_NodeMap[_pSub] = pSubNode;
-    }
-    else
-    {
-        pSubNode = subit->second;
-    }
+    _pSub->m_bEntryAttached |= _pSub->m_pBasicBlock->IsSource();
+    _pSub->m_bExitAttached |= _pSub->m_pBasicBlock->IsSink();
+    _pSub->m_pParent = this;
+    m_Children.push_back(_pSub);
 
-    pDomNode->m_Children.push_back(pSubNode);
+    //if (_pSub->IsSink())
+    //{
+    //    do
+    //    {
+    //        pSubNode->m_bExitAttached = true;
+    //        pSubNode = pSubNode->m_pParent;
+    //    } while (pSubNode != nullptr);
+    //}
+
+    //if (_pSub->IsSource())
+    //{
+    //    do
+    //    {
+    //        pSubNode->m_bEntryAttached = true;
+    //        pSubNode = pSubNode->m_pParent;
+    //    } while (pSubNode != nullptr);
+    //}
 }

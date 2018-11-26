@@ -6,7 +6,7 @@
 #include <deque>
 #include <unordered_set>
 
-NodeOrder NodeOrdering::ComputeCustomOrder(ControlFlowGraph& _CFG, const std::string& _sCustomOrdering)
+NodeOrder NodeOrdering::Custom(ControlFlowGraph& _CFG, const std::string& _sCustomOrdering)
 {
     NodeOrder Order;
 
@@ -32,7 +32,7 @@ NodeOrder NodeOrdering::ComputeCustomOrder(ControlFlowGraph& _CFG, const std::st
     return Order;
 }
 
-NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitLast)
+NodeOrder NodeOrdering::DepthFirst(BasicBlock* _pRoot, const bool _bExitLast)
 {
     NodeOrder Order;
     BasicBlock* pExit = nullptr;
@@ -57,12 +57,47 @@ NodeOrder NodeOrdering::ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitL
     return Order;
 }
 
-NodeOrder NodeOrdering::ComputePostOrderTraversal(BasicBlock* _pRoot, const bool _bReverse)
+NodeOrder NodeOrdering::PostOrderTraversal(BasicBlock* _pRoot, const bool _bReverse)
 {
     return CFGUtils::PostOrderTraversal(_pRoot, _bReverse);
 }
 
-NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckDominance)
+void DominanceRegionImpl(DominatorTreeNode* _pNode, NodeOrder& _Order)
+{
+    _Order.push_back(_pNode->GetBasicBlock());
+
+    DominatorTreeNode* pExitBranch = nullptr;
+
+    for (DominatorTreeNode* pChild : _pNode->GetChildren())
+    {
+        if (pChild->ExitAttached())
+        {
+            pExitBranch = pChild;
+            continue;
+        }
+
+        DominanceRegionImpl(pChild, _Order);
+    }
+
+    // traverse exit branch last
+    if (pExitBranch != nullptr)
+    {
+        DominanceRegionImpl(pExitBranch, _Order);
+    }
+}
+
+NodeOrder NodeOrdering::DominanceRegion(BasicBlock* _pRoot)
+{
+    NodeOrder Order;
+
+    DominatorTree DT = DominatorTree(_pRoot);
+
+    DominanceRegionImpl(DT.GetRootNode(), Order);
+
+    return Order;
+}
+
+NodeOrder NodeOrdering::BreadthFirst(BasicBlock* _pRoot, const bool _bCheckDominance)
 {
     DominatorTree PDT;
 
@@ -136,7 +171,7 @@ NodeOrder NodeOrdering::ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bChe
     return Order;
 }
 
-NodeOrder NodeOrdering::ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit)
+NodeOrder NodeOrdering::DepthFirstPostDom(BasicBlock* _pRoot, BasicBlock* _pExit)
 {
     NodeOrder Order;
 

@@ -12,33 +12,36 @@ using NodeOrder = std::list<BasicBlock*>;
 class NodeOrdering
 {
 public:
-    enum Type : uint32_t
+    enum OrderType : uint32_t
     {
-        None = 0,
-        DepthFirst = 1 << 0,
-        DepthFirstDom = 1 << 1,
-        BreadthFirst = 1 << 2,
-        BreadthFirstDom = 1 << 3,
-        PostOrder = 1 << 4,
-        ReversePostOrder = 1 << 5,
-        Custom = 1 << 6,
-        NumOf = 7,
-        All = (Custom << 1) - 1        
+        Order_None = 0,
+        Order_DepthFirst = 1 << 0,
+        Order_DepthFirstDom = 1 << 1,
+        Order_BreadthFirst = 1 << 2,
+        Order_BreadthFirstDom = 1 << 3,
+        Order_PostOrder = 1 << 4,
+        Order_ReversePostOrder = 1 << 5,
+        Order_DominanceRegion = 1 << 6,
+        Order_Custom = 1 << 7,
+        Order_NumOf = 8,
+        Order_All = (Order_Custom << 1) - 1
     };
 
     NodeOrdering() {};
     ~NodeOrdering() {};
 
     // _sCustomOrdering list of comma separated block names: A,B,C,D
-    static NodeOrder ComputeCustomOrder(ControlFlowGraph& _CFG, const std::string& _sCustomOrdering);
+    static NodeOrder Custom(ControlFlowGraph& _CFG, const std::string& _sCustomOrdering);
 
-    static NodeOrder ComputeDepthFirst(BasicBlock* _pRoot, const bool _bExitLast = false);
+    static NodeOrder DepthFirst(BasicBlock* _pRoot, const bool _bExitLast = false);
 
-    static NodeOrder ComputePostOrderTraversal(BasicBlock* _pExit, const bool _bReverse = false);
+    static NodeOrder DepthFirstPostDom(BasicBlock* _pRoot, BasicBlock* _pExit);
 
-    static NodeOrder ComputeBreadthFirst(BasicBlock* _pRoot, const bool _bCheckAncestors = false);
+    static NodeOrder BreadthFirst(BasicBlock* _pRoot, const bool _bCheckAncestors = false);
 
-    static NodeOrder ComputePaper(BasicBlock* _pRoot, BasicBlock* _pExit);
+    static NodeOrder PostOrderTraversal(BasicBlock* _pExit, const bool _bReverse = false);
+
+    static NodeOrder DominanceRegion(BasicBlock* _pRoot);
 
     // convert divergent nodes with 2 backwards edges to 1 backwards and two foward edges
     // returns true if virtual nodes were inserted
