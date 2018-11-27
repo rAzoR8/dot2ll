@@ -106,45 +106,72 @@ bool OpenTree::Process(const NodeOrder& _Ordering)
 
 void OpenTree::SerializeOTDotGraph(std::ostream& _Out) const
 {
-    _Out << "digraph OT {\nnode[shape = box]\n";
+    // default shape is box, unvisited nodes have lightgrey frame, visited black
+    _Out << "digraph OT {\nnode[shape=box]\n";
 
     std::deque<OpenTreeNode*> Nodes = { m_pRoot };
+
+    std::unordered_set<OpenTreeNode*> Printed;
+
+    auto printNode = [&](OpenTreeNode* pNode)
+    {
+        if (Printed.count(pNode) != 0u)
+            return;
+
+        Printed.insert(pNode);
+
+        _Out << pNode->sName;
+
+        if (pNode->pBB != nullptr && pNode->Armed())
+        {
+            _Out << "[color=red];";
+        }
+        else if (pNode->bVisited)
+        {
+            _Out << "[color=black];";
+        }
+        else
+        {
+            _Out << "[color=lightgrey];";
+        }
+
+        _Out << std::endl;
+    };
 
     while (Nodes.empty() == false)
     {
         OpenTreeNode* pNode = Nodes.front();
         Nodes.pop_front();
 
-        bool bPrinted = false;
-
-        if (pNode->pBB != nullptr && pNode->Armed())
-        {
-            _Out << pNode->sName << "[color=red];" << std::endl;
-            bPrinted = true;
-        }
+        printNode(pNode);
 
         for (const OpenTreeNode* pIn : pNode->Incoming)
         {
-            _Out << pIn->sName << " -> " << pNode->sName << "[style=dashed];" << std::endl;
-            bPrinted = true;
+            _Out << pIn->sName << " -> " << pNode->sName << "[style=dashed";
+            if (pNode == pIn) _Out << ",dir=back";
+            _Out << "];" << std::endl;
         }
 
         for (const auto& flow : pNode->Outgoing)
         {
-            _Out << pNode->sName << " -> " << flow.pTarget->sName << "[style=dotted];" << std::endl;
-            bPrinted = true;
+            printNode(flow.pTarget);
+            _Out << pNode->sName << " -> " << flow.pTarget->sName << "[style=dotted";
+            if (pNode == flow.pTarget) _Out << ",dir=back";
+            _Out <<"];" << std::endl;
         }
+
+#ifdef _DEBUG
+        for (OpenTreeNode* pClosed : pNode->Closed)
+        {
+            printNode(pClosed);
+            _Out << pNode->sName << " -> " << pClosed->sName << "[color=lightgrey];" << std::endl;
+        }
+#endif
 
         for(OpenTreeNode* pSucc : pNode->Children)
         {
-            bPrinted = true;
-            _Out << pNode->sName << " -> " << pSucc->sName << ';' << std::endl;
+            _Out << pNode->sName << " -> " << pSucc->sName << "[arrowhead=none];" << std::endl;
             Nodes.push_back(pSucc);
-        }
-
-        if (bPrinted == false)
-        {
-            _Out << pNode->sName << ';' << std::endl;
         }
     }
 
@@ -592,6 +619,10 @@ void OpenTreeNode::Close(OpenTreeNode* _pSuccessor)
             {
                 FinalOutgoing.push_back(*it);
             }
+
+#ifdef _DEBUG
+            Closed.push_back(_pSuccessor);
+#endif
 
             ++uClosedOutgoing;
             Outgoing.erase(it);

@@ -31,13 +31,17 @@ struct OpenTreeNode
     BasicBlock* pBB = nullptr;
     bool bVisited = false; // has been added to the OT
     bool bFlow = false; // is a flowblock
-    //bool bVirtual = false;
 
     struct Flow
     {
         OpenTreeNode* pTarget = nullptr;
         Instruction* pCondition = nullptr; // condition under which to branch to pTarget
     };
+
+#ifdef _DEBUG
+    // closed edges (for debugging only)
+    std::vector<OpenTreeNode*> Closed;
+#endif
 
     // open edges
     std::vector<OpenTreeNode*> Incoming;
