@@ -214,6 +214,12 @@ int main(int argc, char* argv[])
         OutputPath = std::filesystem::is_directory(InputPath) ? InputPath : InputPath.parent_path();
     }
 
+    if (kOrder == 0u)
+    {
+        HWARNING("No input ordering specified, defaulting to DFPD");
+        kOrder = NodeOrdering::Order_DepthFirstDom;
+    }
+
     const auto Reconv = [&](const uint32_t _uOrder)
     {
         if (std::filesystem::is_directory(InputPath))
