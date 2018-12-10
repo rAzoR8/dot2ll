@@ -19,7 +19,8 @@ static const std::wstring OrderNames[] =
     L"Custom"
 };
 
-void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront, const std::string& _sCustomOrder)
+
+std::vector<InstrId> dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool _bReconv, const std::filesystem::path& _sOutPath, const bool _bPutVirtualFront, const std::string& _sCustomOrder)
 {
     const NodeOrdering::OrderType _kOrder{ 1u << _uOderIndex };
 
@@ -30,13 +31,13 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
     if (uUserNodes == 0u)
     {
         HERROR("Failed to parse %s", WCSTR(_sDotFile));
-        return;
+        return {};
     }
 
     Function func = Dot2CFG::Convert(dotin);
 
     if (func.EnforceUniqueEntryPoint() == false || func.EnforceUniqueExitPoint() == false)
-        return;
+        return {};
 
     const bool bInputReconverging = CheckReconvergence::IsReconverging(func);
 
@@ -44,13 +45,14 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
         _kOrder == NodeOrdering::Order_Custom ? WCSTR(_sCustomOrder) : WCSTR(OrderNames[_uOderIndex]), bInputReconverging ? L"true" : L"false");
 
     std::string sOutName = dotin.GetName();
+    std::vector<InstrId> BBOrder;
 
     if (_bReconv)
     {
         sOutName += "_reconv";
 
         NodeOrder InputOrdering;
-
+        
         switch (_kOrder)
         {
         case NodeOrdering::Order_DepthFirst:
@@ -91,7 +93,12 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
         if (InputOrdering.size() != uUserNodes)
         {
             HFATALD("Ordering is not a valid traversal of the input CFG!");
-            return;
+            return {};
+        }
+
+        for (BasicBlock* pBB : InputOrdering)
+        {
+            BBOrder.push_back(pBB->GetIdentifier());
         }
 
         // only execute if nodes in ordering are not reconverging already
@@ -129,6 +136,8 @@ void dot2ll(const std::string& _sDotFile, const uint32_t _uOderIndex, const bool
 
         ll.close();
     }
+
+    return BBOrder;
 }
 
 int main(int argc, char* argv[])
@@ -238,7 +247,20 @@ int main(int argc, char* argv[])
         }
     };
 
-
+#if 1
+    for (const auto& Entry : std::filesystem::directory_iterator(InputPath))
+    {
+        if (Entry.is_directory() == false && Entry.path().extension() == ".dot")
+        {
+            auto dfd = dot2ll(Entry.path().string(), 1, bReconv, OutputPath, bVirtualFront, sCustomOrder);
+            auto domreg = dot2ll(Entry.path().string(), 6, bReconv, OutputPath, bVirtualFront, sCustomOrder);
+            if (dfd != domreg)
+            {
+                HWARNING("Orderings dont match for %s", WCSTR(Entry.path().filename()));
+            }
+        }
+    }
+#else
     for (uint32_t i = 0u; i < NodeOrdering::Order_NumOf; ++i)
     {
         const auto kType = NodeOrdering::OrderType((1 << i));
@@ -250,6 +272,7 @@ int main(int argc, char* argv[])
             Reconv(i);
         }
     }
+#endif
 
     return 0;
 }
